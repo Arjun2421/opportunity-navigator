@@ -154,6 +154,15 @@ const DataManagement = () => {
 
   // Clear all data
   const clearAllData = () => {
+    setDuplicates([]);
+    setLeadMappings([]);
+    setNewLeads([]);
+    setEditingMapping(null);
+    setNewCanonicalValue('');
+    // Clear any localStorage data related to opportunities
+    localStorage.removeItem('opportunities');
+    localStorage.removeItem('syncLogs');
+    localStorage.removeItem('sharePointConfig');
     toast.success('All data cleared successfully');
   };
 
