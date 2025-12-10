@@ -7,30 +7,22 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Settings as SettingsIcon, Database, Bell, Palette, FileText, Info } from 'lucide-react';
+import { Database, Bell, Info } from 'lucide-react';
 import { STATUS_MAPPING, LEAD_MAPPING, GROUP_CLASSIFICATIONS, PROBABILITY_BY_STAGE } from '@/data/opportunityData';
 import { toast } from 'sonner';
 
-const Settings = () => {
+const AdminSettings = () => {
   const handleSave = () => {
     toast.success('Settings saved successfully');
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <SettingsIcon className="h-6 w-6 text-primary" />
-          Settings
-        </h1>
-        <p className="text-muted-foreground">Configure dashboard preferences and canonical mappings</p>
-      </div>
-
       <Tabs defaultValue="general">
-        <TabsList>
+        <TabsList className="grid grid-cols-4 w-full">
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="mappings">Canonical Mappings</TabsTrigger>
-          <TabsTrigger value="imputation">Imputation Rules</TabsTrigger>
+          <TabsTrigger value="mappings">Mappings</TabsTrigger>
+          <TabsTrigger value="imputation">Imputation</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
 
@@ -259,4 +251,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default AdminSettings;
