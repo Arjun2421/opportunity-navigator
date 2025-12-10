@@ -10,8 +10,6 @@ import Tenders from "./pages/Tenders";
 import Clients from "./pages/Clients";
 import Analytics from "./pages/Analytics";
 import Admin from "./pages/Admin";
-import SharePoint from "./pages/SharePoint";
-import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,8 +28,6 @@ const App = () => (
             <Route path="/clients" element={<Clients />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/sharepoint" element={<SharePoint />} />
-            <Route path="/settings" element={<Settings />} />
             
             {/* Status-based routes */}
             <Route path="/status/pre-bid" element={<Opportunities statusFilter="Pre-bid" />} />

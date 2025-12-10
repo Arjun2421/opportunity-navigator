@@ -14,12 +14,17 @@ import {
   CloudUpload,
   Zap,
   Settings,
+  Users,
+  FileStack,
 } from 'lucide-react';
 import { opportunities, calculateDataHealth } from '@/data/opportunityData';
 import SharePointSyncPanel from '@/components/Admin/SharePointSyncPanel';
 import ErrorMonitor from '@/components/Admin/ErrorMonitor';
 import SystemHealth from '@/components/Admin/SystemHealth';
 import QuickActions from '@/components/Admin/QuickActions';
+import DataManagement from '@/components/Admin/DataManagement';
+import AccessControl from '@/components/Admin/AccessControl';
+import AdminSettings from '@/components/Admin/AdminSettings';
 
 const ADMIN_PASSWORD = 'admin123';
 
@@ -148,31 +153,47 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="sharepoint">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full">
           <TabsTrigger value="sharepoint" className="gap-2">
             <CloudUpload className="h-4 w-4" />
-            SharePoint
+            <span className="hidden md:inline">SharePoint</span>
+          </TabsTrigger>
+          <TabsTrigger value="data" className="gap-2">
+            <FileStack className="h-4 w-4" />
+            <span className="hidden md:inline">Data</span>
+          </TabsTrigger>
+          <TabsTrigger value="access" className="gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden md:inline">Access</span>
           </TabsTrigger>
           <TabsTrigger value="errors" className="gap-2">
             <Bug className="h-4 w-4" />
-            Errors
+            <span className="hidden md:inline">Errors</span>
           </TabsTrigger>
           <TabsTrigger value="health" className="gap-2">
             <Activity className="h-4 w-4" />
-            Health
+            <span className="hidden md:inline">Health</span>
           </TabsTrigger>
           <TabsTrigger value="actions" className="gap-2">
             <Zap className="h-4 w-4" />
-            Actions
+            <span className="hidden md:inline">Actions</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-2">
             <Settings className="h-4 w-4" />
-            Settings
+            <span className="hidden md:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sharepoint" className="mt-4">
           <SharePointSyncPanel />
+        </TabsContent>
+
+        <TabsContent value="data" className="mt-4">
+          <DataManagement />
+        </TabsContent>
+
+        <TabsContent value="access" className="mt-4">
+          <AccessControl />
         </TabsContent>
 
         <TabsContent value="errors" className="mt-4">
@@ -188,22 +209,7 @@ const Admin = () => {
         </TabsContent>
 
         <TabsContent value="settings" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Email Notifications</Label>
-                <Input placeholder="admin@company.com" />
-              </div>
-              <div className="space-y-2">
-                <Label>Data Refresh Interval (minutes)</Label>
-                <Input type="number" defaultValue={60} className="w-24" />
-              </div>
-              <Button>Save Settings</Button>
-            </CardContent>
-          </Card>
+          <AdminSettings />
         </TabsContent>
       </Tabs>
     </div>
