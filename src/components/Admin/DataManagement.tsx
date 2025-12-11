@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -45,9 +44,11 @@ import {
   CheckCircle,
   ArrowRight,
   Save,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { opportunities, LEAD_MAPPING, STATUS_MAPPING, GROUP_CLASSIFICATIONS } from '@/data/opportunityData';
+import { LEAD_MAPPING, STATUS_MAPPING, GROUP_CLASSIFICATIONS } from '@/data/opportunityData';
+import { useData } from '@/contexts/DataContext';
 
 interface CanonicalMapping {
   original: string;
@@ -56,6 +57,8 @@ interface CanonicalMapping {
 }
 
 const DataManagement = () => {
+  const { opportunities, clearAllData, resetToMockData, isDataCleared } = useData();
+  
   const [duplicates, setDuplicates] = useState<typeof opportunities>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [leadMappings, setLeadMappings] = useState<CanonicalMapping[]>(() => {
@@ -82,7 +85,6 @@ const DataManagement = () => {
       const dups: typeof opportunities = [];
       
       opportunities.forEach(opp => {
-        // Check by reference number or client+tenderName combo
         const key1 = opp.opportunityRefNo;
         const key2 = `${opp.clientName?.toLowerCase()}-${opp.tenderName?.toLowerCase().slice(0, 50)}`;
         
@@ -152,18 +154,21 @@ const DataManagement = () => {
     toast.success('Duplicate marked for deletion');
   };
 
-  // Clear all data
-  const clearAllData = () => {
+  // Handle clear all data
+  const handleClearAllData = () => {
+    clearAllData();
     setDuplicates([]);
     setLeadMappings([]);
     setNewLeads([]);
     setEditingMapping(null);
     setNewCanonicalValue('');
-    // Clear any localStorage data related to opportunities
-    localStorage.removeItem('opportunities');
-    localStorage.removeItem('syncLogs');
-    localStorage.removeItem('sharePointConfig');
     toast.success('All data cleared successfully');
+  };
+
+  // Handle reset to mock data
+  const handleResetData = () => {
+    resetToMockData();
+    toast.success('Data reset to original mock data');
   };
 
   // Export mappings
@@ -187,19 +192,41 @@ const DataManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Data Status */}
+      {isDataCleared && (
+        <Card className="border-warning bg-warning/10">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-warning">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-medium">All data has been cleared</span>
+              </div>
+              <Button variant="outline" onClick={handleResetData}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restore Mock Data
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Data Actions Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Button variant="outline" onClick={scanDuplicates} disabled={isScanning}>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Button variant="outline" onClick={scanDuplicates} disabled={isScanning || isDataCleared}>
           {isScanning ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Copy className="h-4 w-4 mr-2" />}
           Scan Duplicates
         </Button>
-        <Button variant="outline" onClick={detectNewLeads}>
+        <Button variant="outline" onClick={detectNewLeads} disabled={isDataCleared}>
           <Plus className="h-4 w-4 mr-2" />
           Detect New Leads
         </Button>
         <Button variant="outline" onClick={exportMappings}>
           <Download className="h-4 w-4 mr-2" />
           Export Mappings
+        </Button>
+        <Button variant="outline" onClick={handleResetData}>
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Reset Data
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -212,19 +239,31 @@ const DataManagement = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all opportunity data. This action cannot be undone.
-                You should export your data first.
+                This will permanently delete all opportunity data including mock data. 
+                You can restore mock data later using the "Reset Data" button.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={clearAllData} className="bg-destructive text-destructive-foreground">
+              <AlertDialogAction onClick={handleClearAllData} className="bg-destructive text-destructive-foreground">
                 Yes, Clear Everything
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
+
+      {/* Current Data Info */}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Current records in database:</span>
+            <Badge variant={opportunities.length > 0 ? "default" : "secondary"}>
+              {opportunities.length} opportunities
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Duplicates Section */}
       {duplicates.length > 0 && (
@@ -319,70 +358,72 @@ const DataManagement = () => {
       )}
 
       {/* Lead Mappings Editor */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lead Name Mappings</CardTitle>
-          <CardDescription>
-            Edit how lead names are normalized in the dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[400px]">
-            <div className="space-y-2">
-              {leadMappings.slice(0, 30).map((mapping) => (
-                <div key={mapping.original} className="flex items-center gap-3 p-2 bg-muted/50 rounded hover:bg-muted transition-colors">
-                  <code className="text-sm flex-1">{mapping.original}</code>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <Badge variant="secondary" className="flex-shrink-0">{mapping.canonical}</Badge>
-                  <Badge variant="outline" className="text-xs flex-shrink-0">{mapping.count} uses</Badge>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => {
-                          setEditingMapping(mapping);
-                          setNewCanonicalValue(mapping.canonical);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Mapping</DialogTitle>
-                        <DialogDescription>
-                          Change how "{mapping.original}" is displayed in the dashboard
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <Label>Original Value</Label>
-                          <Input value={mapping.original} disabled />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Canonical (Display) Value</Label>
-                          <Input 
-                            value={newCanonicalValue}
-                            onChange={(e) => setNewCanonicalValue(e.target.value)}
-                            placeholder="Enter display name"
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={updateMapping}>
-                          <Save className="h-4 w-4 mr-2" />
-                          Save Changes
+      {leadMappings.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Lead Name Mappings</CardTitle>
+            <CardDescription>
+              Edit how lead names are normalized in the dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[400px]">
+              <div className="space-y-2">
+                {leadMappings.slice(0, 30).map((mapping) => (
+                  <div key={mapping.original} className="flex items-center gap-3 p-2 bg-muted/50 rounded hover:bg-muted transition-colors">
+                    <code className="text-sm flex-1">{mapping.original}</code>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <Badge variant="secondary" className="flex-shrink-0">{mapping.canonical}</Badge>
+                    <Badge variant="outline" className="text-xs flex-shrink-0">{mapping.count} uses</Badge>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingMapping(mapping);
+                            setNewCanonicalValue(mapping.canonical);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
                         </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Mapping</DialogTitle>
+                          <DialogDescription>
+                            Change how "{mapping.original}" is displayed in the dashboard
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label>Original Value</Label>
+                            <Input value={mapping.original} disabled />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Canonical (Display) Value</Label>
+                            <Input 
+                              value={newCanonicalValue}
+                              onChange={(e) => setNewCanonicalValue(e.target.value)}
+                              placeholder="Enter display name"
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button onClick={updateMapping}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Changes
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
