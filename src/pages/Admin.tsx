@@ -17,7 +17,8 @@ import {
   Users,
   FileStack,
 } from 'lucide-react';
-import { opportunities, calculateDataHealth } from '@/data/opportunityData';
+import { calculateDataHealth } from '@/data/opportunityData';
+import { useData } from '@/contexts/DataContext';
 import SharePointSyncPanel from '@/components/Admin/SharePointSyncPanel';
 import ErrorMonitor from '@/components/Admin/ErrorMonitor';
 import SystemHealth from '@/components/Admin/SystemHealth';
@@ -29,6 +30,7 @@ import AdminSettings from '@/components/Admin/AdminSettings';
 const ADMIN_PASSWORD = 'admin123';
 
 const Admin = () => {
+  const { opportunities } = useData();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
