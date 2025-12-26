@@ -25,6 +25,15 @@ import { Opportunity, STAGE_ORDER, GROUP_CLASSIFICATIONS } from "@/data/opportun
 
 type DatePreset = "all" | "thisMonth" | "lastMonth" | "thisQuarter" | "lastQuarter" | "thisYear" | "lastYear" | "custom";
 
+type DateField = "dateTenderReceived" | "tenderPlannedSubmissionDate" | "tenderSubmittedDate" | "lastContactDate";
+
+const DATE_FIELD_LABELS: Record<DateField, string> = {
+  dateTenderReceived: "RFP Received",
+  tenderPlannedSubmissionDate: "Planned Submission",
+  tenderSubmittedDate: "Submitted Date",
+  lastContactDate: "Last Activity",
+};
+
 const getDateRangeFromPreset = (preset: DatePreset): { from: Date | undefined; to: Date | undefined } => {
   const now = new Date();
   switch (preset) {
@@ -73,6 +82,7 @@ export interface FilterState {
   partnerInvolvement: string;
   dateRange: { from: Date | undefined; to: Date | undefined };
   datePreset: DatePreset;
+  dateField: DateField;
   valueRange: { min: number | undefined; max: number | undefined };
   showAtRisk: boolean;
   showMissDeadline: boolean;
@@ -96,6 +106,7 @@ export const defaultFilters: FilterState = {
   partnerInvolvement: "all",
   dateRange: { from: undefined, to: undefined },
   datePreset: "all", // Initial bootup shows "All Time" - no date filtering
+  dateField: "dateTenderReceived", // Default to RFP Received date
   valueRange: { min: undefined, max: undefined },
   showAtRisk: false,
   showMissDeadline: false,
@@ -272,6 +283,23 @@ export function AdvancedFilters({
             </div>
           </PopoverContent>
         </Popover>
+
+        {/* Date Field Selector */}
+        <Select
+          value={filters.dateField}
+          onValueChange={(v) => updateFilter("dateField", v as DateField)}
+        >
+          <SelectTrigger className="h-8 w-[140px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(DATE_FIELD_LABELS) as DateField[]).map((field) => (
+              <SelectItem key={field} value={field} className="text-xs">
+                {DATE_FIELD_LABELS[field]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Date Range */}
         <Popover>
@@ -612,12 +640,13 @@ export function applyFilters(data: Opportunity[], filters: FilterState): Opportu
     if (filters.partnerInvolvement === "yes" && !o.partnerInvolvement) return false;
     if (filters.partnerInvolvement === "no" && o.partnerInvolvement) return false;
 
-    // Date Range
-    if (filters.dateRange.from && o.dateTenderReceived) {
-      if (new Date(o.dateTenderReceived) < filters.dateRange.from) return false;
-    }
-    if (filters.dateRange.to && o.dateTenderReceived) {
-      if (new Date(o.dateTenderReceived) > filters.dateRange.to) return false;
+    // Date Range - filter by selected date field
+    const dateFieldValue = o[filters.dateField];
+    if (filters.dateRange.from || filters.dateRange.to) {
+      if (!dateFieldValue) return false; // Exclude if no date and range is specified
+      const dateValue = new Date(dateFieldValue);
+      if (filters.dateRange.from && dateValue < filters.dateRange.from) return false;
+      if (filters.dateRange.to && dateValue > filters.dateRange.to) return false;
     }
 
     // Value Range
