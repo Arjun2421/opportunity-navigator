@@ -32,6 +32,43 @@ const Dashboard = () => {
 
   const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
 
+  const handleKPIClick = (kpiType: 'active' | 'pipeline' | 'won' | 'closed' | 'upcoming') => {
+    switch (kpiType) {
+      case 'active':
+        // Show all active stages (Pre-bid, In Progress, Submitted)
+        setFilters({
+          ...defaultFilters,
+          statuses: ['Pre-bid', 'In Progress', 'Submitted'],
+        });
+        break;
+      case 'pipeline':
+        // Clear filters to show all pipeline
+        setFilters(defaultFilters);
+        break;
+      case 'won':
+        // Filter to Awarded only
+        setFilters({
+          ...defaultFilters,
+          statuses: ['Awarded'],
+        });
+        break;
+      case 'closed':
+        // Filter to Lost/Regretted
+        setFilters({
+          ...defaultFilters,
+          statuses: ['Lost/Regretted'],
+        });
+        break;
+      case 'upcoming':
+        // Show items with upcoming deadlines (at risk)
+        setFilters({
+          ...defaultFilters,
+          showAtRisk: true,
+        });
+        break;
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Advanced Filters */}
@@ -43,7 +80,7 @@ const Dashboard = () => {
       />
 
       {/* KPI Cards */}
-      <KPICards stats={stats} />
+      <KPICards stats={stats} onKPIClick={handleKPIClick} />
 
       {/* Main Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -51,10 +88,15 @@ const Dashboard = () => {
         <FunnelChart data={funnelData} />
         
         {/* At Risk Widget */}
-        <AtRiskWidget data={filteredData} />
+        <AtRiskWidget data={filteredData} onSelectOpportunity={setSelectedOpp} />
         
         {/* Client Leaderboard */}
-        <ClientLeaderboard data={clientData} />
+        <ClientLeaderboard data={clientData} onClientClick={(client) => {
+          setFilters({
+            ...defaultFilters,
+            clients: [client],
+          });
+        }} />
       </div>
 
       {/* Opportunities Table */}

@@ -94,7 +94,11 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
               {filteredData.slice(0, 50).map((opp) => (
                 <TableRow key={opp.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelectOpportunity(opp)}>
                   <TableCell className="font-mono text-xs">{opp.opportunityRefNo}</TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={opp.tenderName}>{opp.tenderName}</TableCell>
+                  <TableCell className="max-w-[200px]">
+                    <span className="text-primary hover:underline font-medium truncate block" title={opp.tenderName}>
+                      {opp.tenderName}
+                    </span>
+                  </TableCell>
                   <TableCell className="max-w-[120px] truncate">{opp.clientName}</TableCell>
                   <TableCell><Badge className={getStatusBadge(opp.canonicalStage)}>{opp.canonicalStage}</Badge></TableCell>
                   <TableCell>{opp.internalLead || <span className="text-muted-foreground text-xs">Unassigned</span>}</TableCell>
