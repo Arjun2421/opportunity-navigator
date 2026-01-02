@@ -77,6 +77,7 @@ export interface FilterState {
   statuses: string[];
   groups: string[];
   leads: string[];
+  clients: string[];
   clientTypes: string[];
   qualificationStatuses: string[];
   partnerInvolvement: string;
@@ -101,6 +102,7 @@ export const defaultFilters: FilterState = {
   statuses: [],
   groups: [],
   leads: [],
+  clients: [],
   clientTypes: [],
   qualificationStatuses: [],
   partnerInvolvement: "all",
@@ -123,9 +125,10 @@ export function AdvancedFilters({
   // Extract unique values from data
   const uniqueValues = useMemo(() => {
     const leads = [...new Set(data.map((o) => o.internalLead).filter(Boolean))].sort();
+    const clients = [...new Set(data.map((o) => o.clientName).filter(Boolean))].sort();
     const clientTypes = [...new Set(data.map((o) => o.clientType).filter(Boolean))].sort();
     const qualifications = [...new Set(data.map((o) => o.qualificationStatus).filter(Boolean))].sort();
-    return { leads, clientTypes, qualifications };
+    return { leads, clients, clientTypes, qualifications };
   }, [data]);
 
   const activeFilterCount = useMemo(() => {
@@ -134,6 +137,7 @@ export function AdvancedFilters({
     if (filters.statuses.length > 0) count++;
     if (filters.groups.length > 0) count++;
     if (filters.leads.length > 0) count++;
+    if (filters.clients.length > 0) count++;
     if (filters.clientTypes.length > 0) count++;
     if (filters.qualificationStatuses.length > 0) count++;
     if (filters.partnerInvolvement !== "all") count++;
@@ -148,7 +152,7 @@ export function AdvancedFilters({
     onFiltersChange({ ...filters, [key]: value });
   };
 
-  const toggleArrayValue = (key: "statuses" | "groups" | "leads" | "clientTypes" | "qualificationStatuses", value: string) => {
+  const toggleArrayValue = (key: "statuses" | "groups" | "leads" | "clients" | "clientTypes" | "qualificationStatuses", value: string) => {
     const current = filters[key];
     const updated = current.includes(value)
       ? current.filter((v) => v !== value)
@@ -277,6 +281,37 @@ export function AdvancedFilters({
                   />
                   <Label htmlFor={`lead-${lead}`} className="text-sm cursor-pointer">
                     {lead}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Client Quick Filter */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              Client
+              {filters.clients.length > 0 && (
+                <Badge variant="secondary" className="ml-1 px-1.5">
+                  {filters.clients.length}
+                </Badge>
+              )}
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-3 max-h-[300px] overflow-auto" align="start">
+            <div className="space-y-2">
+              {uniqueValues.clients.map((client) => (
+                <div key={client} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`client-${client}`}
+                    checked={filters.clients.includes(client)}
+                    onCheckedChange={() => toggleArrayValue("clients", client)}
+                  />
+                  <Label htmlFor={`client-${client}`} className="text-sm cursor-pointer truncate">
+                    {client}
                   </Label>
                 </div>
               ))}
@@ -563,10 +598,19 @@ export function AdvancedFilters({
           ))}
           {filters.leads.map((lead) => (
             <Badge key={lead} variant="secondary" className="gap-1 pl-2">
-              {lead}
+              Lead: {lead}
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => toggleArrayValue("leads", lead)}
+              />
+            </Badge>
+          ))}
+          {filters.clients.map((client) => (
+            <Badge key={client} variant="secondary" className="gap-1 pl-2">
+              Client: {client}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => toggleArrayValue("clients", client)}
               />
             </Badge>
           ))}
@@ -620,6 +664,11 @@ export function applyFilters(data: Opportunity[], filters: FilterState): Opportu
 
     // Leads
     if (filters.leads.length > 0 && !filters.leads.includes(o.internalLead)) {
+      return false;
+    }
+
+    // Clients
+    if (filters.clients.length > 0 && !filters.clients.includes(o.clientName)) {
       return false;
     }
 
