@@ -6,6 +6,7 @@ import { AtRiskWidget } from '@/components/Dashboard/AtRiskWidget';
 import { ClientLeaderboard } from '@/components/Dashboard/ClientLeaderboard';
 import { DataHealthWidget } from '@/components/Dashboard/DataHealthWidget';
 import { AdvancedFilters, FilterState, defaultFilters, applyFilters } from '@/components/Dashboard/AdvancedFilters';
+import { ExportButton } from '@/components/Dashboard/ExportButton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -18,9 +19,11 @@ import {
   Opportunity 
 } from '@/data/opportunityData';
 import { useData } from '@/contexts/DataContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const Dashboard = () => {
   const { opportunities } = useData();
+  const { formatCurrency } = useCurrency();
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
@@ -29,8 +32,6 @@ const Dashboard = () => {
   const funnelData = useMemo(() => calculateFunnelData(filteredData), [filteredData]);
   const clientData = useMemo(() => getClientData(filteredData), [filteredData]);
   const dataHealth = useMemo(() => calculateDataHealth(filteredData), [filteredData]);
-
-  const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
 
   const handleKPIClick = (kpiType: 'active' | 'pipeline' | 'won' | 'closed' | 'upcoming') => {
     switch (kpiType) {
@@ -71,13 +72,18 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Advanced Filters */}
-      <AdvancedFilters
-        data={opportunities}
-        filters={filters}
-        onFiltersChange={setFilters}
-        onClearFilters={() => setFilters(defaultFilters)}
-      />
+      {/* Advanced Filters with Export */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <AdvancedFilters
+            data={opportunities}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClearFilters={() => setFilters(defaultFilters)}
+          />
+        </div>
+        <ExportButton data={filteredData} filename="opportunities" />
+      </div>
 
       {/* KPI Cards */}
       <KPICards stats={stats} onKPIClick={handleKPIClick} />

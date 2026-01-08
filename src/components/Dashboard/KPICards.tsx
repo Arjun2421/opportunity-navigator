@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown, DollarSign, Target, Trophy, XCircle, AlertTriangle, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface KPICardsProps {
   stats: {
@@ -17,17 +18,21 @@ interface KPICardsProps {
 }
 
 export function KPICards({ stats, onKPIClick }: KPICardsProps) {
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-    return `$${value}`;
+  const { currency, convertValue } = useCurrency();
+
+  const formatCurrencyValue = (value: number) => {
+    const converted = convertValue(value);
+    const symbol = currency === 'AED' ? 'د.إ' : '$';
+    if (converted >= 1000000) return `${symbol}${(converted / 1000000).toFixed(1)}M`;
+    if (converted >= 1000) return `${symbol}${(converted / 1000).toFixed(0)}K`;
+    return `${symbol}${converted.toFixed(0)}`;
   };
 
   const kpis = [
     { label: 'Active Opportunities', value: stats.totalActive, icon: Target, color: 'text-primary', bgColor: 'bg-primary/10', type: 'active' as const },
-    { label: 'Pipeline Value', value: formatCurrency(stats.totalPipelineValue), icon: DollarSign, color: 'text-info', bgColor: 'bg-info/10', type: 'pipeline' as const },
-    { label: 'Won', value: `${stats.wonCount} (${formatCurrency(stats.wonValue)})`, icon: Trophy, color: 'text-success', bgColor: 'bg-success/10', type: 'won' as const },
-    { label: 'Closed', value: `${stats.lostCount} (${formatCurrency(stats.lostValue)})`, icon: XCircle, color: 'text-muted-foreground', bgColor: 'bg-muted', type: 'closed' as const },
+    { label: 'Pipeline Value', value: formatCurrencyValue(stats.totalPipelineValue), icon: DollarSign, color: 'text-info', bgColor: 'bg-info/10', type: 'pipeline' as const },
+    { label: 'Won', value: `${stats.wonCount} (${formatCurrencyValue(stats.wonValue)})`, icon: Trophy, color: 'text-success', bgColor: 'bg-success/10', type: 'won' as const },
+    { label: 'Closed', value: `${stats.lostCount} (${formatCurrencyValue(stats.lostValue)})`, icon: XCircle, color: 'text-muted-foreground', bgColor: 'bg-muted', type: 'closed' as const },
     { label: 'Upcoming Deadlines', value: stats.atRiskCount, icon: Clock, color: 'text-pending', bgColor: 'bg-pending/10', type: 'upcoming' as const },
   ];
 
