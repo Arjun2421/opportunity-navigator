@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -41,22 +40,43 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
       'In Progress': 'bg-warning/20 text-warning',
       'Submitted': 'bg-pending/20 text-pending',
       'Awarded': 'bg-success/20 text-success',
+      'Lost': 'bg-destructive/20 text-destructive',
+      'Regretted': 'bg-muted text-muted-foreground',
       'Lost/Regretted': 'bg-destructive/20 text-destructive',
       'On Hold/Paused': 'bg-muted text-muted-foreground',
     };
     return variants[stage] || 'bg-muted text-muted-foreground';
   };
 
-  const handleApprove = (e: React.MouseEvent, oppId: string) => {
+  const handleApprovalChange = (e: React.MouseEvent | React.ChangeEvent, oppId: string, value: string) => {
     e.stopPropagation();
-    approveOpportunity(oppId);
+    if (value === 'approved') {
+      approveOpportunity(oppId);
+    }
+  };
+
+  const getTenderType = (opp: Opportunity): string => {
+    // Check opportunityClassification for EOI or Tender type
+    const classification = opp.opportunityClassification?.toLowerCase() || '';
+    if (classification.includes('eoi')) return 'EOI';
+    if (classification.includes('tender')) return 'Tender';
+    return opp.opportunityClassification || '—';
+  };
+
+  const getBidNoBid = (opp: Opportunity): 'Bid' | 'No Bid' | 'Pending' => {
+    // Determine based on qualification status or explicit field
+    if (opp.qualificationStatus?.toLowerCase().includes('qualified')) return 'Bid';
+    if (opp.qualificationStatus?.toLowerCase().includes('not qualified')) return 'No Bid';
+    if (opp.canonicalStage === 'Lost/Regretted' || opp.canonicalStage === 'On Hold/Paused') return 'No Bid';
+    if (opp.canonicalStage === 'Awarded' || opp.canonicalStage === 'Submitted') return 'Bid';
+    return 'Pending';
   };
 
   return (
     <Card className="flex-1">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Opportunities</CardTitle>
+          <CardTitle className="text-lg">Tenders</CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -91,13 +111,14 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
               <TableRow>
                 <TableHead className="w-24">Ref No.</TableHead>
                 <TableHead>Tender Name</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="font-bold">RFP Received</TableHead>
                 <TableHead>Lead</TableHead>
                 <TableHead className="text-right">Value</TableHead>
                 <TableHead className="text-right">Prob.</TableHead>
-                <TableHead className="text-right">Expected</TableHead>
+                <TableHead>Bid/No Bid</TableHead>
                 <TableHead>Approval</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
@@ -105,6 +126,7 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
             <TableBody>
               {filteredData.slice(0, 50).map((opp) => {
                 const approvalStatus = getApprovalStatus(opp.id);
+                const bidNoBid = getBidNoBid(opp);
                 return (
                   <TableRow key={opp.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelectOpportunity(opp)}>
                     <TableCell className="font-mono text-xs">{opp.opportunityRefNo}</TableCell>
@@ -112,6 +134,11 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                       <span className="text-primary hover:underline font-medium truncate block" title={opp.tenderName}>
                         {opp.tenderName}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getTenderType(opp) === 'EOI' ? 'outline' : 'secondary'} className="text-xs">
+                        {getTenderType(opp)}
+                      </Badge>
                     </TableCell>
                     <TableCell className="max-w-[120px] truncate">{opp.clientName}</TableCell>
                     <TableCell><Badge className={getStatusBadge(opp.canonicalStage)}>{opp.canonicalStage}</Badge></TableCell>
@@ -131,23 +158,43 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                       </div>
                     </TableCell>
                     <TableCell className="text-right">{opp.probability}%</TableCell>
-                    <TableCell className="text-right font-mono text-success">{formatCurrency(opp.expectedValue)}</TableCell>
                     <TableCell>
+                      <Badge 
+                        variant={bidNoBid === 'Bid' ? 'default' : bidNoBid === 'No Bid' ? 'destructive' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {bidNoBid}
+                      </Badge>
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {approvalStatus === 'approved' ? (
                         <Badge className="bg-success/20 text-success gap-1">
                           <CheckCircle className="h-3 w-3" />
                           Approved
                         </Badge>
                       ) : isAdmin ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs gap-1"
-                          onClick={(e) => handleApprove(e, opp.id)}
+                        <Select
+                          value={approvalStatus}
+                          onValueChange={(value) => handleApprovalChange({} as any, opp.id, value)}
                         >
-                          <Clock className="h-3 w-3" />
-                          Pending
-                        </Button>
+                          <SelectTrigger className="h-7 w-[100px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Pending
+                              </span>
+                            </SelectItem>
+                            <SelectItem value="approved">
+                              <span className="flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Approved
+                              </span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       ) : (
                         <Badge variant="secondary" className="gap-1">
                           <Clock className="h-3 w-3" />
@@ -168,7 +215,7 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
           </Table>
         </div>
         <div className="p-3 text-xs text-muted-foreground border-t">
-          Showing {Math.min(filteredData.length, 50)} of {filteredData.length} opportunities
+          Showing {Math.min(filteredData.length, 50)} of {filteredData.length} tenders
         </div>
       </CardContent>
     </Card>

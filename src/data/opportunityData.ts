@@ -339,15 +339,17 @@ export const opportunities = generateOpportunities();
 
 // Calculate summary statistics
 export function calculateSummaryStats(data: Opportunity[]) {
-  const activeOpps = data.filter(o => !['Lost/Regretted', 'Closed'].includes(o.canonicalStage));
+  const activeOpps = data.filter(o => !['Lost/Regretted', 'Closed', 'Lost', 'Regretted'].includes(o.canonicalStage));
   const wonOpps = data.filter(o => o.canonicalStage === 'Awarded');
-  const lostOpps = data.filter(o => o.canonicalStage === 'Lost/Regretted');
+  const lostOpps = data.filter(o => o.awardStatus === 'LOST' || o.canonicalStage === 'Lost');
+  const regrettedOpps = data.filter(o => o.opportunityStatus?.toUpperCase() === 'REGRETTED' || o.canonicalStage === 'Regretted');
   const atRiskOpps = data.filter(o => o.isAtRisk);
   
   const totalPipelineValue = activeOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
   const weightedPipeline = activeOpps.reduce((sum, o) => sum + o.expectedValue, 0);
   const wonValue = wonOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
   const lostValue = lostOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
+  const regrettedValue = regrettedOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
   
   const submittedOpps = data.filter(o => o.tenderSubmittedDate);
   const avgDaysToSubmission = submittedOpps.length > 0 
@@ -362,6 +364,8 @@ export function calculateSummaryStats(data: Opportunity[]) {
     wonValue,
     lostCount: lostOpps.length,
     lostValue,
+    regrettedCount: regrettedOpps.length,
+    regrettedValue,
     atRiskCount: atRiskOpps.length,
     avgDaysToSubmission: Math.round(avgDaysToSubmission),
   };

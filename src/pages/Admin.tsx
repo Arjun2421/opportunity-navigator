@@ -17,19 +17,21 @@ import {
   Settings,
   Users,
   FileStack,
-  DollarSign,
+  Sheet,
 } from 'lucide-react';
 import { calculateDataHealth } from '@/data/opportunityData';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import SharePointSyncPanel from '@/components/Admin/SharePointSyncPanel';
+import GoogleSheetsSync from '@/components/Admin/GoogleSheetsSync';
 import ErrorMonitor from '@/components/Admin/ErrorMonitor';
 import SystemHealth from '@/components/Admin/SystemHealth';
 import QuickActions from '@/components/Admin/QuickActions';
 import DataManagement from '@/components/Admin/DataManagement';
 import AccessControl from '@/components/Admin/AccessControl';
 import AdminSettings from '@/components/Admin/AdminSettings';
+import aedSymbol from '@/assets/aed-symbol.png';
 
 const Admin = () => {
   const { opportunities } = useData();
@@ -70,13 +72,12 @@ const Admin = () => {
         <div className="flex items-center gap-4">
           {/* Currency Toggle */}
           <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">USD</span>
+            <span className="text-sm font-medium">$</span>
             <Switch
               checked={currency === 'AED'}
               onCheckedChange={(checked) => setCurrency(checked ? 'AED' : 'USD')}
             />
-            <span className="text-sm font-medium">AED</span>
+            <img src={aedSymbol} alt="AED" className="h-4 w-4 dark:invert" />
           </div>
           <Button variant="outline" onClick={logout}>
             <Lock className="h-4 w-4 mr-2" />
@@ -131,8 +132,12 @@ const Admin = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="sharepoint">
+      <Tabs defaultValue="gsheets">
         <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full">
+          <TabsTrigger value="gsheets" className="gap-2">
+            <Sheet className="h-4 w-4" />
+            <span className="hidden md:inline">Google Sheets</span>
+          </TabsTrigger>
           <TabsTrigger value="sharepoint" className="gap-2">
             <CloudUpload className="h-4 w-4" />
             <span className="hidden md:inline">SharePoint</span>
@@ -162,6 +167,10 @@ const Admin = () => {
             <span className="hidden md:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="gsheets" className="mt-4">
+          <GoogleSheetsSync />
+        </TabsContent>
 
         <TabsContent value="sharepoint" className="mt-4">
           <SharePointSyncPanel />

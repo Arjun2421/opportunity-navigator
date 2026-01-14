@@ -6,7 +6,7 @@ interface ApprovalContextType {
   approvals: Record<string, ApprovalStatus>;
   getApprovalStatus: (opportunityId: string) => ApprovalStatus;
   approveOpportunity: (opportunityId: string) => void;
-  revokeApproval: (opportunityId: string) => void;
+  // Note: Once approved, cannot revert - removed revokeApproval
 }
 
 const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined);
@@ -33,15 +33,16 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
   }, [approvals]);
 
   const approveOpportunity = useCallback((opportunityId: string) => {
-    setApprovals((prev) => ({ ...prev, [opportunityId]: 'approved' }));
-  }, []);
-
-  const revokeApproval = useCallback((opportunityId: string) => {
-    setApprovals((prev) => ({ ...prev, [opportunityId]: 'pending' }));
+    // Once approved, cannot be reverted
+    setApprovals((prev) => {
+      // Only set if not already approved
+      if (prev[opportunityId] === 'approved') return prev;
+      return { ...prev, [opportunityId]: 'approved' };
+    });
   }, []);
 
   return (
-    <ApprovalContext.Provider value={{ approvals, getApprovalStatus, approveOpportunity, revokeApproval }}>
+    <ApprovalContext.Provider value={{ approvals, getApprovalStatus, approveOpportunity }}>
       {children}
     </ApprovalContext.Provider>
   );
