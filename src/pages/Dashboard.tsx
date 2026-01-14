@@ -33,7 +33,7 @@ const Dashboard = () => {
   const clientData = useMemo(() => getClientData(filteredData), [filteredData]);
   const dataHealth = useMemo(() => calculateDataHealth(filteredData), [filteredData]);
 
-  const handleKPIClick = (kpiType: 'active' | 'pipeline' | 'won' | 'closed' | 'upcoming') => {
+  const handleKPIClick = (kpiType: 'active' | 'pipeline' | 'won' | 'lost' | 'regretted' | 'upcoming') => {
     switch (kpiType) {
       case 'active':
         // Show all active stages (Pre-bid, In Progress, Submitted)
@@ -53,15 +53,22 @@ const Dashboard = () => {
           statuses: ['Awarded'],
         });
         break;
-      case 'closed':
-        // Filter to Lost/Regretted
+      case 'lost':
+        // Filter to Lost only
+        setFilters({
+          ...defaultFilters,
+          statuses: ['Lost/Regretted'],
+        });
+        break;
+      case 'regretted':
+        // Filter to Regretted
         setFilters({
           ...defaultFilters,
           statuses: ['Lost/Regretted'],
         });
         break;
       case 'upcoming':
-        // Show items with upcoming deadlines (at risk)
+        // Show items with upcoming deadlines (submission near)
         setFilters({
           ...defaultFilters,
           showAtRisk: true,
@@ -82,7 +89,7 @@ const Dashboard = () => {
             onClearFilters={() => setFilters(defaultFilters)}
           />
         </div>
-        <ExportButton data={filteredData} filename="opportunities" />
+        <ExportButton data={filteredData} filename="tenders" />
       </div>
 
       {/* KPI Cards */}
@@ -93,7 +100,7 @@ const Dashboard = () => {
         {/* Funnel */}
         <FunnelChart data={funnelData} />
         
-        {/* At Risk Widget */}
+        {/* Submission Near Widget */}
         <AtRiskWidget data={filteredData} onSelectOpportunity={setSelectedOpp} />
         
         {/* Client Leaderboard */}
@@ -105,7 +112,7 @@ const Dashboard = () => {
         }} />
       </div>
 
-      {/* Opportunities Table */}
+      {/* Tenders Table */}
       <OpportunitiesTable data={filteredData} onSelectOpportunity={setSelectedOpp} />
 
       {/* Data Health */}
@@ -130,7 +137,7 @@ const Dashboard = () => {
                 <div className="flex gap-2">
                   <Badge>{selectedOpp.canonicalStage}</Badge>
                   <Badge variant="outline">{selectedOpp.groupClassification}</Badge>
-                  {selectedOpp.isAtRisk && <Badge variant="destructive">At Risk</Badge>}
+                  {selectedOpp.isAtRisk && <Badge variant="destructive">Submission Near</Badge>}
                 </div>
 
                 <Separator />

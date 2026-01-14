@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import aedSymbol from '@/assets/aed-symbol.png';
 
 export type Currency = 'USD' | 'AED';
 
@@ -9,6 +10,7 @@ interface CurrencyContextType {
   setCurrency: (currency: Currency) => void;
   formatCurrency: (value: number) => string;
   convertValue: (value: number) => number;
+  aedSymbolUrl: string;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -34,13 +36,14 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const formatCurrency = useCallback((value: number): string => {
     const convertedValue = convertValue(value);
     if (currency === 'AED') {
-      return `د.إ ${convertedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+      // Using text representation since we can't include image in string
+      return `AED ${convertedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
     }
     return `$${convertedValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   }, [currency, convertValue]);
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, convertValue }}>
+    <CurrencyContext.Provider value={{ currency, setCurrency, formatCurrency, convertValue, aedSymbolUrl: aedSymbol }}>
       {children}
     </CurrencyContext.Provider>
   );

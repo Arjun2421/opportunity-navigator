@@ -30,13 +30,13 @@ const Opportunities = ({ statusFilter }: OpportunitiesProps) => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
-            {statusFilter ? `${statusFilter} Opportunities` : 'All Opportunities'}
+            {statusFilter ? `${statusFilter} Tenders` : 'All Tenders'}
           </h1>
           <p className="text-muted-foreground">
-            {filteredData.length} opportunities found
+            {filteredData.length} tenders found
           </p>
         </div>
-        <ExportButton data={filteredData} filename={statusFilter ? `${statusFilter.toLowerCase().replace(/\//g, '-')}-opportunities` : 'all-opportunities'} />
+        <ExportButton data={filteredData} filename={statusFilter ? `${statusFilter.toLowerCase().replace(/\//g, '-')}-tenders` : 'all-tenders'} />
       </div>
 
       <AdvancedFilters
@@ -64,7 +64,7 @@ const Opportunities = ({ statusFilter }: OpportunitiesProps) => {
                 <div className="flex gap-2 flex-wrap">
                   <Badge>{selectedOpp.canonicalStage}</Badge>
                   <Badge variant="outline">{selectedOpp.groupClassification}</Badge>
-                  {selectedOpp.isAtRisk && <Badge variant="destructive">At Risk</Badge>}
+                  {selectedOpp.isAtRisk && <Badge variant="destructive">Submission Near</Badge>}
                 </div>
 
                 <Separator />
