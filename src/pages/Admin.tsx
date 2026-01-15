@@ -18,6 +18,8 @@ import {
   Users,
   FileStack,
   Sheet,
+  Crown,
+  Clock,
 } from 'lucide-react';
 import { calculateDataHealth } from '@/data/opportunityData';
 import { useData } from '@/contexts/DataContext';
@@ -31,16 +33,18 @@ import QuickActions from '@/components/Admin/QuickActions';
 import DataManagement from '@/components/Admin/DataManagement';
 import AccessControl from '@/components/Admin/AccessControl';
 import AdminSettings from '@/components/Admin/AdminSettings';
+import ApprovalLogsPanel from '@/components/Admin/ApprovalLogsPanel';
+import UserRolesPanel from '@/components/Admin/UserRolesPanel';
 import aedSymbol from '@/assets/aed-symbol.png';
 
 const Admin = () => {
   const { opportunities } = useData();
-  const { isAdmin, user, logout } = useAuth();
+  const { isAdmin, isMaster, user, logout } = useAuth();
   const { currency, setCurrency } = useCurrency();
 
   const dataHealth = calculateDataHealth(opportunities);
 
-  // Only admins should access this page
+  // Only admins or master should access this page
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -51,7 +55,7 @@ const Admin = () => {
             </div>
             <CardTitle>Access Denied</CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
-              You need admin privileges to access this page.
+              You need admin or master privileges to access this page.
             </p>
           </CardHeader>
         </Card>
@@ -133,10 +137,10 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="gsheets">
-        <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full">
+        <TabsList className="grid grid-cols-5 md:grid-cols-10 w-full">
           <TabsTrigger value="gsheets" className="gap-2">
             <Sheet className="h-4 w-4" />
-            <span className="hidden md:inline">Google Sheets</span>
+            <span className="hidden md:inline">Sheets</span>
           </TabsTrigger>
           <TabsTrigger value="sharepoint" className="gap-2">
             <CloudUpload className="h-4 w-4" />
@@ -150,6 +154,18 @@ const Admin = () => {
             <Users className="h-4 w-4" />
             <span className="hidden md:inline">Access</span>
           </TabsTrigger>
+          {isMaster && (
+            <TabsTrigger value="roles" className="gap-2">
+              <Crown className="h-4 w-4" />
+              <span className="hidden md:inline">Roles</span>
+            </TabsTrigger>
+          )}
+          {isMaster && (
+            <TabsTrigger value="logs" className="gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="hidden md:inline">Logs</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="errors" className="gap-2">
             <Bug className="h-4 w-4" />
             <span className="hidden md:inline">Errors</span>
@@ -183,6 +199,18 @@ const Admin = () => {
         <TabsContent value="access" className="mt-4">
           <AccessControl />
         </TabsContent>
+
+        {isMaster && (
+          <TabsContent value="roles" className="mt-4">
+            <UserRolesPanel />
+          </TabsContent>
+        )}
+
+        {isMaster && (
+          <TabsContent value="logs" className="mt-4">
+            <ApprovalLogsPanel />
+          </TabsContent>
+        )}
 
         <TabsContent value="errors" className="mt-4">
           <ErrorMonitor />
