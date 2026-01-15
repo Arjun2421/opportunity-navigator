@@ -5,6 +5,7 @@ import { OpportunitiesTable } from '@/components/Dashboard/OpportunitiesTable';
 import { AtRiskWidget } from '@/components/Dashboard/AtRiskWidget';
 import { ClientLeaderboard } from '@/components/Dashboard/ClientLeaderboard';
 import { DataHealthWidget } from '@/components/Dashboard/DataHealthWidget';
+import { ApprovalStatsWidget } from '@/components/Dashboard/ApprovalStatsWidget';
 import { AdvancedFilters, FilterState, defaultFilters, applyFilters } from '@/components/Dashboard/AdvancedFilters';
 import { ExportButton } from '@/components/Dashboard/ExportButton';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -115,8 +116,9 @@ const Dashboard = () => {
       {/* Tenders Table */}
       <OpportunitiesTable data={filteredData} onSelectOpportunity={setSelectedOpp} />
 
-      {/* Data Health */}
+      {/* Data Health + Approval Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ApprovalStatsWidget data={filteredData} />
         <DataHealthWidget {...dataHealth} />
       </div>
 

@@ -48,8 +48,7 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
     return variants[stage] || 'bg-muted text-muted-foreground';
   };
 
-  const handleApprovalChange = (e: React.MouseEvent | React.ChangeEvent, oppId: string, value: string) => {
-    e.stopPropagation();
+  const handleApprovalChange = (oppId: string, value: string) => {
     if (value === 'approved') {
       approveOpportunity(oppId);
     }
@@ -175,7 +174,7 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                       ) : isAdmin ? (
                         <Select
                           value={approvalStatus}
-                          onValueChange={(value) => handleApprovalChange({} as any, opp.id, value)}
+                          onValueChange={(value) => handleApprovalChange(opp.id, value)}
                         >
                           <SelectTrigger className="h-7 w-[100px] text-xs">
                             <SelectValue />
