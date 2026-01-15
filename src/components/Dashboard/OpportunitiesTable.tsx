@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, Info, Search, CheckCircle, Clock } from 'lucide-react';
+import { AlertTriangle, Info, Search, CheckCircle, Clock, RotateCcw } from 'lucide-react';
 import { Opportunity, STAGE_ORDER } from '@/data/opportunityData';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useApproval } from '@/contexts/ApprovalContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 interface OpportunitiesTableProps {
   data: Opportunity[];
@@ -21,8 +22,8 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [groupFilter, setGroupFilter] = useState<string>('all');
   const { formatCurrency } = useCurrency();
-  const { getApprovalStatus, approveOpportunity } = useApproval();
-  const { isAdmin } = useAuth();
+  const { getApprovalStatus, approveOpportunity, revertApproval } = useApproval();
+  const { isAdmin, isMaster, user } = useAuth();
 
   const filteredData = data.filter(opp => {
     const matchesSearch = !search || 
@@ -49,9 +50,15 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
   };
 
   const handleApprovalChange = (oppId: string, value: string) => {
+    if (!user) return;
     if (value === 'approved') {
-      approveOpportunity(oppId);
+      approveOpportunity(oppId, user.displayName, user.role);
     }
+  };
+
+  const handleRevertApproval = (oppId: string) => {
+    if (!user || !isMaster) return;
+    revertApproval(oppId, user.displayName, user.role);
   };
 
   const getTenderType = (opp: Opportunity): string => {
@@ -167,10 +174,27 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {approvalStatus === 'approved' ? (
-                        <Badge className="bg-success/20 text-success gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          Approved
-                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Badge className="bg-success/20 text-success gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Approved
+                          </Badge>
+                          {isMaster && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6"
+                                  onClick={() => handleRevertApproval(opp.id)}
+                                >
+                                  <RotateCcw className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Revert to Pending (Master only)</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
                       ) : isAdmin ? (
                         <Select
                           value={approvalStatus}
