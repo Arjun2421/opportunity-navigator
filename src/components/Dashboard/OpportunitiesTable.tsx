@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, Info, Search, CheckCircle, Clock, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Info, Search, CheckCircle, Clock, RotateCcw, RefreshCw } from 'lucide-react';
 import { Opportunity, STAGE_ORDER } from '@/data/opportunityData';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useApproval } from '@/contexts/ApprovalContext';
@@ -22,8 +22,15 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [groupFilter, setGroupFilter] = useState<string>('all');
   const { formatCurrency } = useCurrency();
-  const { getApprovalStatus, approveOpportunity, revertApproval } = useApproval();
+  const { getApprovalStatus, approveOpportunity, revertApproval, refreshApprovals } = useApproval();
   const { isAdmin, isMaster, user } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    refreshApprovals();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const filteredData = data.filter(opp => {
     const matchesSearch = !search || 
@@ -107,6 +114,19 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                 <SelectItem value="GTS">GTS</SelectItem>
               </SelectContent>
             </Select>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRefresh}
+                  className="h-9 px-3"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh approval status</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </CardHeader>

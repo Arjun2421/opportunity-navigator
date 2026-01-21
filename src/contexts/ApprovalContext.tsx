@@ -17,6 +17,7 @@ interface ApprovalContextType {
   getApprovalStatus: (opportunityId: string) => ApprovalStatus;
   approveOpportunity: (opportunityId: string, performedBy: string, performedByRole: string) => void;
   revertApproval: (opportunityId: string, performedBy: string, performedByRole: string) => void; // Master only
+  refreshApprovals: () => void; // Manual refresh from localStorage
 }
 
 const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined);
@@ -96,8 +97,27 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
     ]);
   }, []);
 
+  const refreshApprovals = useCallback(() => {
+    const savedApprovals = localStorage.getItem('tender_approvals');
+    if (savedApprovals) {
+      try {
+        setApprovals(JSON.parse(savedApprovals));
+      } catch {
+        // Keep current state if parse fails
+      }
+    }
+    const savedLogs = localStorage.getItem('approval_logs');
+    if (savedLogs) {
+      try {
+        setApprovalLogs(JSON.parse(savedLogs));
+      } catch {
+        // Keep current state if parse fails
+      }
+    }
+  }, []);
+
   return (
-    <ApprovalContext.Provider value={{ approvals, approvalLogs, getApprovalStatus, approveOpportunity, revertApproval }}>
+    <ApprovalContext.Provider value={{ approvals, approvalLogs, getApprovalStatus, approveOpportunity, revertApproval, refreshApprovals }}>
       {children}
     </ApprovalContext.Provider>
   );
