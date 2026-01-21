@@ -339,17 +339,45 @@ export const opportunities = generateOpportunities();
 
 // Calculate summary statistics
 export function calculateSummaryStats(data: Opportunity[]) {
-  const activeOpps = data.filter(o => !['Lost/Regretted', 'Closed', 'Lost', 'Regretted'].includes(o.canonicalStage));
+  // 1. ACTIVE COUNT: Status = ONGOING, AWARDED, or SUBMITTED (from avenirStatus/opportunityStatus uppercase)
+  const activeOpps = data.filter(o => {
+    const status = (o.opportunityStatus || '').toUpperCase();
+    return ['ONGOING', 'AWARDED', 'SUBMITTED', 'IN PROGRESS', 'TENDER SUBMITTED'].includes(status);
+  });
+  
+  // 2. PIPELINE VALUE: Status = ONGOING or AWARDED only (sum of opportunityValue)
+  const pipelineOpps = data.filter(o => {
+    const awardStatus = (o.awardStatus || '').toUpperCase();
+    const oppStatus = (o.opportunityStatus || '').toUpperCase();
+    return awardStatus === 'ONGOING' || awardStatus === 'AWARDED' || 
+           oppStatus === 'ONGOING' || oppStatus === 'AWARDED' || 
+           o.canonicalStage === 'In Progress' || o.canonicalStage === 'Awarded';
+  });
+  const totalPipelineValue = pipelineOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
+  
+  // 3 & 4. WON COUNT & VALUE: canonicalStage = 'Awarded'
   const wonOpps = data.filter(o => o.canonicalStage === 'Awarded');
-  const lostOpps = data.filter(o => o.awardStatus === 'LOST' || o.canonicalStage === 'Lost');
-  const regrettedOpps = data.filter(o => o.opportunityStatus?.toUpperCase() === 'REGRETTED' || o.canonicalStage === 'Regretted');
+  const wonValue = wonOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
+  
+  // 5 & 6. LOST COUNT & VALUE: awardStatus = 'LOST' OR canonicalStage contains 'Lost'
+  const lostOpps = data.filter(o => {
+    const awardStatus = (o.awardStatus || '').toUpperCase();
+    return awardStatus === 'LOST' || o.canonicalStage === 'Lost' || 
+           (o.canonicalStage === 'Lost/Regretted' && awardStatus === 'LOST');
+  });
+  const lostValue = lostOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
+  
+  // 7 & 8. REGRETTED COUNT & VALUE: opportunityStatus = 'REGRETTED' (uppercase)
+  const regrettedOpps = data.filter(o => {
+    const oppStatus = (o.opportunityStatus || '').toUpperCase();
+    return oppStatus === 'REGRETTED';
+  });
+  const regrettedValue = regrettedOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
+  
+  // 9. AT-RISK COUNT: isAtRisk = true
   const atRiskOpps = data.filter(o => o.isAtRisk);
   
-  const totalPipelineValue = activeOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
   const weightedPipeline = activeOpps.reduce((sum, o) => sum + o.expectedValue, 0);
-  const wonValue = wonOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
-  const lostValue = lostOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
-  const regrettedValue = regrettedOpps.reduce((sum, o) => sum + o.opportunityValue, 0);
   
   const submittedOpps = data.filter(o => o.tenderSubmittedDate);
   const avgDaysToSubmission = submittedOpps.length > 0 
