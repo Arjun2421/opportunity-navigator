@@ -123,7 +123,6 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                 <TableHead className="font-bold">RFP Received</TableHead>
                 <TableHead>Lead</TableHead>
                 <TableHead className="text-right">Value</TableHead>
-                <TableHead className="text-right">Prob.</TableHead>
                 <TableHead>Bid/No Bid</TableHead>
                 <TableHead>Approval</TableHead>
                 <TableHead className="w-16"></TableHead>
@@ -163,7 +162,6 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">{opp.probability}%</TableCell>
                     <TableCell>
                       <Badge 
                         variant={bidNoBid === 'Bid' ? 'default' : bidNoBid === 'No Bid' ? 'destructive' : 'secondary'}
