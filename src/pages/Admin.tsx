@@ -44,8 +44,9 @@ const Admin = () => {
 
   const dataHealth = calculateDataHealth(opportunities);
 
-  // Only admins or master should access this page
-  if (!isAdmin) {
+  // Only MASTER users can access the full admin panel
+  // Admins can only approve - they don't have access to admin panel
+  if (!isMaster) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Card className="w-full max-w-md">
@@ -55,7 +56,12 @@ const Admin = () => {
             </div>
             <CardTitle>Access Denied</CardTitle>
             <p className="text-sm text-muted-foreground mt-2">
-              You need admin or master privileges to access this page.
+              Only Master users can access the Admin Panel.
+              {isAdmin && (
+                <span className="block mt-2 text-muted-foreground">
+                  As an Admin, you can approve tender values from the Tenders page.
+                </span>
+              )}
             </p>
           </CardHeader>
         </Card>
