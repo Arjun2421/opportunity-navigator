@@ -6,9 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Sheet, RefreshCw, Link2, Check, ArrowRight, AlertCircle, Table2, X } from 'lucide-react';
+import { Sheet, RefreshCw, Link2, Check, ArrowRight, AlertCircle, Table2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useData } from '@/contexts/DataContext';
 
@@ -26,30 +25,18 @@ interface SheetConnection {
 }
 
 const DASHBOARD_FIELDS = [
-  { value: 'opportunityRefNo', label: 'Reference No.' },
-  { value: 'tenderNo', label: 'Tender No.' },
+  { value: 'refNo', label: 'Reference No.' },
   { value: 'tenderName', label: 'Tender Name' },
   { value: 'tenderType', label: 'Type (EOI/Tender)' },
-  { value: 'clientName', label: 'Client Name' },
-  { value: 'clientType', label: 'Client Type' },
-  { value: 'clientLead', label: 'Client Lead' },
-  { value: 'opportunityClassification', label: 'Classification' },
-  { value: 'opportunityStatus', label: 'Status' },
-  { value: 'groupClassification', label: 'Group (GTS/GDS/GES/GTN)' },
-  { value: 'domainSubGroup', label: 'Domain Sub-Group' },
-  { value: 'internalLead', label: 'Internal Lead' },
-  { value: 'opportunityValue', label: 'Tender Value' },
-  { value: 'probability', label: 'Probability (%)' },
-  { value: 'dateTenderReceived', label: 'RFP Received Date' },
-  { value: 'tenderPlannedSubmissionDate', label: 'Planned Submission Date' },
-  { value: 'tenderSubmittedDate', label: 'Submitted Date' },
-  { value: 'partnerInvolvement', label: 'Partner Involvement' },
-  { value: 'partnerName', label: 'Partner Name' },
-  { value: 'country', label: 'Country' },
-  { value: 'remarks', label: 'Remarks' },
-  { value: 'awardStatus', label: 'Award Status' },
-  { value: 'bidNoBid', label: 'Bid/No Bid' },
-  { value: 'qualificationStatus', label: 'Qualification Status' },
+  { value: 'client', label: 'Client Name' },
+  { value: 'lead', label: 'Internal Lead' },
+  { value: 'value', label: 'Tender Value' },
+  { value: 'avenirStatus', label: 'AVENIR STATUS' },
+  { value: 'tenderResult', label: 'TENDER RESULT' },
+  { value: 'tenderStatusRemark', label: 'TENDER STATUS (Remark)' },
+  { value: 'remarksReason', label: 'REMARKS/REASON' },
+  { value: 'year', label: 'Year' },
+  { value: 'rawDateReceived', label: 'Date Tender Received' },
   { value: 'skip', label: '-- Skip this column --' },
 ];
 
@@ -64,7 +51,7 @@ export default function GoogleSheetsSync() {
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
   const [savedConnection, setSavedConnection] = useState<SheetConnection | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const { refreshFromSheets } = useData();
+  const { refreshData } = useData();
 
   // Load saved connection on mount
   useEffect(() => {
@@ -92,7 +79,7 @@ export default function GoogleSheetsSync() {
 
   const fetchSheetHeaders = async (): Promise<string[]> => {
     const id = extractSpreadsheetId(spreadsheetId);
-    const range = sheetName ? `${sheetName}!1:1` : 'Sheet1!1:1';
+    const range = sheetName ? `${sheetName}!A3:Z3` : 'Sheet1!A3:Z3';
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${encodeURIComponent(range)}?key=${apiKey}`;
 
     const res = await fetch(url);
@@ -103,34 +90,6 @@ export default function GoogleSheetsSync() {
     const data = await res.json();
     const headers: string[] = data.values?.[0] || [];
     return headers.filter((h: string) => h && h.trim() !== '');
-  };
-
-  const fetchSheetData = async (): Promise<Record<string, string>[]> => {
-    const id = extractSpreadsheetId(spreadsheetId);
-    const range = sheetName ? `${sheetName}` : 'Sheet1';
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${id}/values/${encodeURIComponent(range)}?key=${apiKey}`;
-
-    const res = await fetch(url);
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData?.error?.message || `Failed to fetch data (${res.status})`);
-    }
-    const data = await res.json();
-    const rows: string[][] = data.values || [];
-    if (rows.length < 2) return [];
-
-    const headers = rows[0];
-    const result: Record<string, string>[] = [];
-
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const obj: Record<string, string> = {};
-      headers.forEach((h, idx) => {
-        obj[h] = row[idx] || '';
-      });
-      result.push(obj);
-    }
-    return result;
   };
 
   const handleConnect = async () => {
@@ -145,7 +104,7 @@ export default function GoogleSheetsSync() {
     try {
       const headers = await fetchSheetHeaders();
       if (headers.length === 0) {
-        throw new Error('No column headers found in the first row');
+        throw new Error('No column headers found in row 3');
       }
       setDetectedColumns(headers);
       // Auto-suggest mappings
@@ -166,33 +125,27 @@ export default function GoogleSheetsSync() {
   const autoSuggestMapping = (colName: string): string => {
     const lower = colName.toLowerCase().replace(/[^a-z0-9]/g, '');
     const hints: Record<string, string> = {
-      'refno': 'opportunityRefNo',
-      'referenceno': 'opportunityRefNo',
-      'tenderno': 'tenderNo',
+      'tenderno': 'refNo',
+      'tendertype': 'tenderType',
+      'type': 'tenderType',
+      'client': 'client',
+      'clientname': 'client',
       'tendername': 'tenderName',
       'name': 'tenderName',
-      'type': 'opportunityClassification',
-      'client': 'clientName',
-      'clientname': 'clientName',
-      'status': 'opportunityStatus',
-      'group': 'groupClassification',
-      'lead': 'internalLead',
-      'internallead': 'internalLead',
-      'value': 'opportunityValue',
-      'tendervalue': 'opportunityValue',
-      'probability': 'probability',
-      'prob': 'probability',
-      'rfpdate': 'dateTenderReceived',
-      'rfpreceived': 'dateTenderReceived',
-      'submissiondate': 'tenderPlannedSubmissionDate',
-      'plannedsubmission': 'tenderPlannedSubmissionDate',
-      'submitteddate': 'tenderSubmittedDate',
-      'partner': 'partnerName',
-      'country': 'country',
-      'remarks': 'remarks',
-      'bidstatus': 'bidNoBid',
-      'bidnobid': 'bidNoBid',
-      'qualification': 'qualificationStatus',
+      'lead': 'lead',
+      'internallead': 'lead',
+      'value': 'value',
+      'tendervalue': 'value',
+      'avenirstatus': 'avenirStatus',
+      'tenderresult': 'tenderResult',
+      'tenderstatus': 'tenderStatusRemark',
+      'remarks': 'remarksReason',
+      'remarksreason': 'remarksReason',
+      'reason': 'remarksReason',
+      'year': 'year',
+      'datetenderrecd': 'rawDateReceived',
+      'datereceived': 'rawDateReceived',
+      'rfpreceived': 'rawDateReceived',
     };
     return hints[lower] || 'skip';
   };
@@ -215,84 +168,38 @@ export default function GoogleSheetsSync() {
       return;
     }
 
+    // Save connection
+    const connection: SheetConnection = {
+      apiKey,
+      spreadsheetId: extractSpreadsheetId(spreadsheetId),
+      sheetName,
+      mappings: columnMappings,
+      connectedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('gsheets_connection', JSON.stringify(connection));
+    setSavedConnection(connection);
+
+    // Trigger data refresh which will use the dataCollection service
     setIsLoading(true);
-    setFetchError(null);
-
     try {
-      // Fetch actual data
-      const rawData = await fetchSheetData();
-
-      // Transform using mappings
-      const transformed = rawData.map((row, idx) => {
-        const obj: Record<string, any> = { id: `sheet-${idx}` };
-        columnMappings.forEach(m => {
-          if (m.dashboardField !== 'skip') {
-            let val: any = row[m.sheetColumn] ?? '';
-            // Parse numbers for value/probability
-            if (m.dashboardField === 'opportunityValue') {
-              val = parseFloat(String(val).replace(/[^0-9.-]/g, '')) || 0;
-            } else if (m.dashboardField === 'probability') {
-              val = parseInt(String(val).replace(/[^0-9]/g, ''), 10) || 0;
-            }
-            obj[m.dashboardField] = val;
-          }
-        });
-        return obj;
-      });
-
-      // Save connection
-      const connection: SheetConnection = {
-        apiKey,
-        spreadsheetId: extractSpreadsheetId(spreadsheetId),
-        sheetName,
-        mappings: columnMappings,
-        connectedAt: new Date().toISOString(),
-      };
-      localStorage.setItem('gsheets_connection', JSON.stringify(connection));
-      setSavedConnection(connection);
-
-      // Update data context
-      refreshFromSheets(transformed);
-
+      await refreshData();
       setShowMappingDialog(false);
       setIsConnected(true);
-      toast.success(`Imported ${transformed.length} records with ${mappedCount} mapped columns`);
+      toast.success(`Connected and synced data with ${mappedCount} mapped columns`);
     } catch (err: any) {
-      console.error('Import error:', err);
-      setFetchError(err.message || 'Failed to import data');
-      toast.error(err.message || 'Failed to import data');
+      toast.error(err.message || 'Failed to sync data');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSync = async () => {
-    if (!savedConnection) {
-      toast.error('No saved connection');
-      return;
-    }
     setIsLoading(true);
     setFetchError(null);
 
     try {
-      const rawData = await fetchSheetData();
-      const transformed = rawData.map((row, idx) => {
-        const obj: Record<string, any> = { id: `sheet-${idx}` };
-        savedConnection.mappings.forEach(m => {
-          if (m.dashboardField !== 'skip') {
-            let val: any = row[m.sheetColumn] ?? '';
-            if (m.dashboardField === 'opportunityValue') {
-              val = parseFloat(String(val).replace(/[^0-9.-]/g, '')) || 0;
-            } else if (m.dashboardField === 'probability') {
-              val = parseInt(String(val).replace(/[^0-9]/g, ''), 10) || 0;
-            }
-            obj[m.dashboardField] = val;
-          }
-        });
-        return obj;
-      });
-      refreshFromSheets(transformed);
-      toast.success(`Synced ${transformed.length} records`);
+      await refreshData();
+      toast.success('Data synced successfully');
     } catch (err: any) {
       console.error('Sync error:', err);
       setFetchError(err.message || 'Sync failed');
@@ -322,7 +229,7 @@ export default function GoogleSheetsSync() {
             Google Sheets Sync
           </CardTitle>
           <CardDescription>
-            Connect to Google Sheets to sync tender data automatically
+            Data is synced from Google Sheets automatically. Use the controls below to manage the connection.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -333,98 +240,33 @@ export default function GoogleSheetsSync() {
             </div>
           )}
 
-          {!isConnected ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="api-key">Google Sheets API Key</Label>
-                <Input
-                  id="api-key"
-                  type="password"
-                  placeholder="Enter your API key..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Get your API key from{' '}
-                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" className="underline">
-                    Google Cloud Console
-                  </a>
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="spreadsheet-id">Spreadsheet ID or URL</Label>
-                <Input
-                  id="spreadsheet-id"
-                  placeholder="Enter Spreadsheet ID or paste full URL..."
-                  value={spreadsheetId}
-                  onChange={(e) => setSpreadsheetId(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  From URL: docs.google.com/spreadsheets/d/<span className="font-mono text-primary">SPREADSHEET_ID</span>/edit
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sheet-name">Sheet Name (Tab)</Label>
-                <Input
-                  id="sheet-name"
-                  placeholder="e.g., Sheet1, Tenders, Data..."
-                  value={sheetName}
-                  onChange={(e) => setSheetName(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Leave empty to use the first sheet
-                </p>
-              </div>
-
-              <Button
-                onClick={handleConnect}
-                disabled={isLoading || !apiKey || !spreadsheetId}
-                className="w-full"
-              >
-                {isLoading ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Link2 className="h-4 w-4 mr-2" />
-                )}
-                Connect & Configure
-              </Button>
-            </>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg">
-                <Check className="h-5 w-5 text-success" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-success">Connected</p>
-                  <p className="text-xs text-muted-foreground">
-                    Spreadsheet ID: {extractSpreadsheetId(spreadsheetId).substring(0, 20)}...
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-success border-success">
-                  {columnMappings.filter(m => m.dashboardField !== 'skip').length} columns mapped
-                </Badge>
-              </div>
-
-              <div className="flex gap-2">
-                <Button onClick={handleSync} disabled={isLoading} className="flex-1">
-                  {isLoading ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Sync Now
-                </Button>
-                <Button variant="outline" onClick={() => setShowMappingDialog(true)}>
-                  <Table2 className="h-4 w-4 mr-2" />
-                  Edit Mappings
-                </Button>
-                <Button variant="destructive" onClick={handleDisconnect}>
-                  Disconnect
-                </Button>
-              </div>
+          <div className="flex items-center gap-2 p-3 bg-success/10 rounded-lg">
+            <Check className="h-5 w-5 text-success" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-success">Connected to Google Sheets</p>
+              <p className="text-xs text-muted-foreground">
+                Data syncs automatically from MASTER TENDER LIST AVENIR
+              </p>
             </div>
-          )}
+            <Badge variant="outline" className="text-success border-success">
+              Auto-sync enabled
+            </Badge>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleSync} disabled={isLoading} className="flex-1">
+              {isLoading ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Sync Now
+            </Button>
+            <Button variant="outline" onClick={() => setShowMappingDialog(true)}>
+              <Table2 className="h-4 w-4 mr-2" />
+              View Settings
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -434,63 +276,73 @@ export default function GoogleSheetsSync() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Table2 className="h-5 w-5" />
-              Map Sheet Columns to Dashboard Fields
+              Google Sheets Connection Settings
             </DialogTitle>
             <DialogDescription>
-              Select which dashboard field each sheet column should map to. Use "Skip" to ignore a column.
+              Configure how sheet columns map to dashboard fields
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-3">
-              {detectedColumns.map((column, index) => (
-                <div key={column} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{column}</p>
-                    <p className="text-xs text-muted-foreground">Column {String.fromCharCode(65 + index)}</p>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <Select
-                    value={columnMappings.find(m => m.sheetColumn === column)?.dashboardField || 'skip'}
-                    onValueChange={(value) => handleMappingChange(column, value)}
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Select field..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DASHBOARD_FIELDS.map(field => (
-                        <SelectItem key={field.value} value={field.value}>
-                          {field.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+          <div className="space-y-4 py-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="text-sm font-medium">Current Configuration</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Spreadsheet ID: 1DrnoJDytUd3_2uL5C3yyHT4yX4kleonTXaxiLgPCYK4
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Sheet Name: MASTER TENDER LIST AVENIR
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Data starts from Row 4, Column B
+              </p>
             </div>
-          </ScrollArea>
 
-          <Separator />
-
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <AlertCircle className="h-4 w-4" />
-            <span>
-              {columnMappings.filter(m => m.dashboardField !== 'skip').length} of {detectedColumns.length} columns will be imported
-            </span>
+            {detectedColumns.length > 0 && (
+              <ScrollArea className="h-[300px] pr-4">
+                <div className="space-y-3">
+                  {detectedColumns.map((column, index) => (
+                    <div key={column} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{column}</p>
+                        <p className="text-xs text-muted-foreground">Column {String.fromCharCode(66 + index)}</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <Select
+                        value={columnMappings.find(m => m.sheetColumn === column)?.dashboardField || 'skip'}
+                        onValueChange={(value) => handleMappingChange(column, value)}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select field..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DASHBOARD_FIELDS.map(field => (
+                            <SelectItem key={field.value} value={field.value}>
+                              {field.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowMappingDialog(false)}>
-              Cancel
+              Close
             </Button>
-            <Button onClick={handleApplyMapping} disabled={isLoading}>
-              {isLoading ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4 mr-2" />
-              )}
-              Apply Mapping & Import
-            </Button>
+            {detectedColumns.length > 0 && (
+              <Button onClick={handleApplyMapping} disabled={isLoading}>
+                {isLoading ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 mr-2" />
+                )}
+                Apply & Sync
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

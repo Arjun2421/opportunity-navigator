@@ -1,89 +1,114 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Opportunity, generateOpportunities, STATUS_MAPPING, PROBABILITY_BY_STAGE } from '@/data/opportunityData';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { 
+  TenderData, 
+  KPIStats, 
+  FunnelData, 
+  ClientData,
+  fetchGoogleSheetsData, 
+  calculateKPIStats, 
+  calculateFunnelData, 
+  getClientData,
+  getSubmissionNearTenders,
+  convertToOpportunityFormat 
+} from '@/services/dataCollection';
 
 interface DataContextType {
-  opportunities: Opportunity[];
+  tenders: TenderData[];
+  opportunities: any[]; // Legacy format for compatibility
+  kpiStats: KPIStats;
+  funnelData: FunnelData[];
+  clientData: ClientData[];
+  submissionNearTenders: TenderData[];
+  isLoading: boolean;
+  error: string | null;
+  refreshData: () => Promise<void>;
   clearAllData: () => void;
-  resetToMockData: () => void;
-  refreshFromSheets: (data: Record<string, any>[]) => void;
   isDataCleared: boolean;
 }
+
+const defaultKPIStats: KPIStats = {
+  activeTenders: 0,
+  totalActiveValue: 0,
+  awardedCount: 0,
+  awardedValue: 0,
+  lostCount: 0,
+  lostValue: 0,
+  regrettedCount: 0,
+  regrettedValue: 0,
+  workingCount: 0,
+  workingValue: 0,
+  toStartCount: 0,
+  toStartValue: 0,
+  ongoingCount: 0,
+  ongoingValue: 0,
+  submissionNearCount: 0,
+};
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(() => generateOpportunities());
+  const [tenders, setTenders] = useState<TenderData[]>([]);
+  const [kpiStats, setKpiStats] = useState<KPIStats>(defaultKPIStats);
+  const [funnelData, setFunnelData] = useState<FunnelData[]>([]);
+  const [clientData, setClientData] = useState<ClientData[]>([]);
+  const [submissionNearTenders, setSubmissionNearTenders] = useState<TenderData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isDataCleared, setIsDataCleared] = useState(false);
 
+  // Convert tenders to legacy opportunity format
+  const opportunities = tenders.map(convertToOpportunityFormat);
+
+  const refreshData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const data = await fetchGoogleSheetsData();
+      setTenders(data);
+      setKpiStats(calculateKPIStats(data));
+      setFunnelData(calculateFunnelData(data));
+      setClientData(getClientData(data));
+      setSubmissionNearTenders(getSubmissionNearTenders(data));
+      setIsDataCleared(false);
+    } catch (err) {
+      console.error('Error refreshing data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const clearAllData = useCallback(() => {
-    setOpportunities([]);
+    setTenders([]);
+    setKpiStats(defaultKPIStats);
+    setFunnelData([]);
+    setClientData([]);
+    setSubmissionNearTenders([]);
     setIsDataCleared(true);
-    localStorage.removeItem('opportunities');
+    localStorage.removeItem('approvals');
     localStorage.removeItem('syncLogs');
-    localStorage.removeItem('sharePointConfig');
-    localStorage.removeItem('leadMappings');
   }, []);
 
-  const resetToMockData = useCallback(() => {
-    setOpportunities(generateOpportunities());
-    setIsDataCleared(false);
-  }, []);
-
-  const refreshFromSheets = useCallback((data: Record<string, any>[]) => {
-    const transformed: Opportunity[] = data.map((row, idx) => {
-      const status = row.opportunityStatus?.toUpperCase() || '';
-      const canonicalStage = STATUS_MAPPING[status] || 'Pre-bid';
-      const probability = row.probability || PROBABILITY_BY_STAGE[canonicalStage] || 10;
-      const value = row.opportunityValue || 0;
-
-      return {
-        id: row.id || `imported-${idx}`,
-        opportunityRefNo: row.opportunityRefNo || '',
-        tenderNo: row.tenderNo || '',
-        tenderName: row.tenderName || 'Unnamed',
-        clientName: row.clientName || '',
-        clientType: row.clientType || '',
-        clientLead: row.clientLead || '',
-        opportunityClassification: row.opportunityClassification || row.tenderType || '',
-        opportunityStatus: row.opportunityStatus || '',
-        canonicalStage,
-        qualificationStatus: row.qualificationStatus || '',
-        groupClassification: row.groupClassification || '',
-        domainSubGroup: row.domainSubGroup || '',
-        internalLead: row.internalLead || '',
-        opportunityValue: value,
-        opportunityValue_imputed: false,
-        opportunityValue_imputation_reason: '',
-        probability,
-        probability_imputed: false,
-        probability_imputation_reason: '',
-        expectedValue: value * (probability / 100),
-        dateTenderReceived: row.dateTenderReceived || null,
-        tenderPlannedSubmissionDate: row.tenderPlannedSubmissionDate || null,
-        tenderPlannedSubmissionDate_imputed: false,
-        tenderPlannedSubmissionDate_imputation_reason: '',
-        tenderSubmittedDate: row.tenderSubmittedDate || null,
-        lastContactDate: null,
-        lastContactDate_imputed: false,
-        lastContactDate_imputation_reason: '',
-        daysSinceTenderReceived: 0,
-        daysToPlannedSubmission: 0,
-        agedDays: 0,
-        willMissDeadline: false,
-        isAtRisk: false,
-        partnerInvolvement: !!row.partnerName,
-        partnerName: row.partnerName || '',
-        country: row.country || '',
-        remarks: row.remarks || '',
-        awardStatus: row.awardStatus || '',
-      };
-    });
-    setOpportunities(transformed);
-    setIsDataCleared(false);
-  }, []);
+  // Fetch data on mount
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
 
   return (
-    <DataContext.Provider value={{ opportunities, clearAllData, resetToMockData, refreshFromSheets, isDataCleared }}>
+    <DataContext.Provider value={{ 
+      tenders, 
+      opportunities,
+      kpiStats, 
+      funnelData, 
+      clientData,
+      submissionNearTenders,
+      isLoading, 
+      error, 
+      refreshData,
+      clearAllData,
+      isDataCleared 
+    }}>
       {children}
     </DataContext.Provider>
   );
