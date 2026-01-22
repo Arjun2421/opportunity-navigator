@@ -57,14 +57,14 @@ interface CanonicalMapping {
 }
 
 const DataManagement = () => {
-  const { opportunities, clearAllData, resetToMockData, isDataCleared } = useData();
+  const { tenders, clearAllData, refreshData, isDataCleared } = useData();
   
-  const [duplicates, setDuplicates] = useState<typeof opportunities>([]);
+  const [duplicates, setDuplicates] = useState<typeof tenders>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [leadMappings, setLeadMappings] = useState<CanonicalMapping[]>(() => {
     const counts: Record<string, number> = {};
-    opportunities.forEach(opp => {
-      const lead = opp.internalLead || 'Unassigned';
+    tenders.forEach(tender => {
+      const lead = tender.lead || 'Unassigned';
       counts[lead] = (counts[lead] || 0) + 1;
     });
     return Object.entries(LEAD_MAPPING).map(([original, canonical]) => ({
@@ -81,20 +81,20 @@ const DataManagement = () => {
   const scanDuplicates = () => {
     setIsScanning(true);
     setTimeout(() => {
-      const seen = new Map<string, typeof opportunities[0]>();
-      const dups: typeof opportunities = [];
+      const seen = new Map<string, typeof tenders[0]>();
+      const dups: typeof tenders = [];
       
-      opportunities.forEach(opp => {
-        const key1 = opp.opportunityRefNo;
-        const key2 = `${opp.clientName?.toLowerCase()}-${opp.tenderName?.toLowerCase().slice(0, 50)}`;
+      tenders.forEach(tender => {
+        const key1 = tender.refNo;
+        const key2 = `${tender.client?.toLowerCase()}-${tender.tenderName?.toLowerCase().slice(0, 50)}`;
         
         if (key1 && seen.has(key1)) {
-          dups.push(opp);
+          dups.push(tender);
         } else if (seen.has(key2)) {
-          dups.push(opp);
+          dups.push(tender);
         } else {
-          if (key1) seen.set(key1, opp);
-          seen.set(key2, opp);
+          if (key1) seen.set(key1, tender);
+          seen.set(key2, tender);
         }
       });
       
@@ -109,8 +109,8 @@ const DataManagement = () => {
     const existingLeads = new Set(Object.keys(LEAD_MAPPING).map(l => l.toLowerCase()));
     const detected: string[] = [];
     
-    opportunities.forEach(opp => {
-      const lead = opp.internalLead;
+    tenders.forEach(tender => {
+      const lead = tender.lead;
       if (lead && !existingLeads.has(lead.toLowerCase())) {
         if (!detected.includes(lead)) {
           detected.push(lead);
@@ -165,10 +165,10 @@ const DataManagement = () => {
     toast.success('All data cleared successfully');
   };
 
-  // Handle reset to mock data
-  const handleResetData = () => {
-    resetToMockData();
-    toast.success('Data reset to original mock data');
+  // Handle refresh data from Google Sheets
+  const handleRefreshData = async () => {
+    await refreshData();
+    toast.success('Data refreshed from Google Sheets');
   };
 
   // Export mappings
@@ -201,9 +201,9 @@ const DataManagement = () => {
                 <AlertTriangle className="h-5 w-5" />
                 <span className="font-medium">All data has been cleared</span>
               </div>
-              <Button variant="outline" onClick={handleResetData}>
+              <Button variant="outline" onClick={handleRefreshData}>
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Restore Mock Data
+                Refresh from Google Sheets
               </Button>
             </div>
           </CardContent>
@@ -224,9 +224,9 @@ const DataManagement = () => {
           <Download className="h-4 w-4 mr-2" />
           Export Mappings
         </Button>
-        <Button variant="outline" onClick={handleResetData}>
+        <Button variant="outline" onClick={handleRefreshData}>
           <RotateCcw className="h-4 w-4 mr-2" />
-          Reset Data
+          Refresh Data
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -239,8 +239,8 @@ const DataManagement = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete all opportunity data including mock data. 
-                You can restore mock data later using the "Reset Data" button.
+                This will clear all tender data from the local cache. 
+                You can refresh from Google Sheets later using the "Refresh Data" button.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -257,9 +257,9 @@ const DataManagement = () => {
       <Card>
         <CardContent className="pt-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Current records in database:</span>
-            <Badge variant={opportunities.length > 0 ? "default" : "secondary"}>
-              {opportunities.length} opportunities
+            <span className="text-sm text-muted-foreground">Current records loaded:</span>
+            <Badge variant={tenders.length > 0 ? "default" : "secondary"}>
+              {tenders.length} tenders
             </Badge>
           </div>
         </CardContent>
@@ -292,10 +292,10 @@ const DataManagement = () => {
                 <TableBody>
                   {duplicates.map((dup) => (
                     <TableRow key={dup.id}>
-                      <TableCell className="font-mono text-xs">{dup.opportunityRefNo || 'N/A'}</TableCell>
-                      <TableCell>{dup.clientName}</TableCell>
+                      <TableCell className="font-mono text-xs">{dup.refNo || 'N/A'}</TableCell>
+                      <TableCell>{dup.client}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{dup.tenderName}</TableCell>
-                      <TableCell>${dup.opportunityValue?.toLocaleString() || 0}</TableCell>
+                      <TableCell>${dup.value?.toLocaleString() || 0}</TableCell>
                       <TableCell className="text-right">
                         <Button 
                           variant="ghost" 

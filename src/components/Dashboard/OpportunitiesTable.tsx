@@ -5,22 +5,28 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, Info, Search, CheckCircle, Clock, RotateCcw, RefreshCw } from 'lucide-react';
-import { Opportunity, STAGE_ORDER } from '@/data/opportunityData';
+import { AlertTriangle, Search, CheckCircle, Clock, RotateCcw, RefreshCw, MessageSquare } from 'lucide-react';
+import { TenderData } from '@/services/dataCollection';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useApproval } from '@/contexts/ApprovalContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface OpportunitiesTableProps {
-  data: Opportunity[];
-  onSelectOpportunity: (opp: Opportunity) => void;
+  data: TenderData[];
+  onSelectTender?: (tender: TenderData) => void;
 }
 
-export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesTableProps) {
+const AVENIR_STATUS_OPTIONS = ['ALL', 'HOLD / CLOSED', 'REGRETTED', 'SUBMITTED', 'AWARDED', 'TO START', 'WORKING'];
+
+export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableProps) {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [groupFilter, setGroupFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const { formatCurrency } = useCurrency();
   const { getApprovalStatus, approveOpportunity, revertApproval, refreshApprovals } = useApproval();
   const { isAdmin, isMaster, user } = useAuth();
@@ -32,57 +38,50 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const filteredData = data.filter(opp => {
+  const filteredData = data.filter(tender => {
     const matchesSearch = !search || 
-      opp.tenderName.toLowerCase().includes(search.toLowerCase()) ||
-      opp.clientName.toLowerCase().includes(search.toLowerCase()) ||
-      opp.opportunityRefNo.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || opp.canonicalStage === statusFilter;
-    const matchesGroup = groupFilter === 'all' || opp.groupClassification === groupFilter;
-    return matchesSearch && matchesStatus && matchesGroup;
+      tender.tenderName?.toLowerCase().includes(search.toLowerCase()) ||
+      tender.client?.toLowerCase().includes(search.toLowerCase()) ||
+      tender.refNo?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'ALL' || 
+      tender.avenirStatus?.toUpperCase() === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (stage: string) => {
+  const getStatusBadge = (status: string) => {
+    const upperStatus = status?.toUpperCase() || '';
     const variants: Record<string, string> = {
-      'Pre-bid': 'bg-info/20 text-info',
-      'In Progress': 'bg-warning/20 text-warning',
-      'Submitted': 'bg-pending/20 text-pending',
-      'Awarded': 'bg-success/20 text-success',
-      'Lost': 'bg-destructive/20 text-destructive',
-      'Regretted': 'bg-muted text-muted-foreground',
-      'Lost/Regretted': 'bg-destructive/20 text-destructive',
-      'On Hold/Paused': 'bg-muted text-muted-foreground',
+      'TO START': 'bg-info/20 text-info',
+      'WORKING': 'bg-warning/20 text-warning',
+      'ONGOING': 'bg-warning/20 text-warning',
+      'SUBMITTED': 'bg-pending/20 text-pending',
+      'AWARDED': 'bg-success/20 text-success',
+      'LOST': 'bg-destructive/20 text-destructive',
+      'REGRETTED': 'bg-muted text-muted-foreground',
+      'HOLD / CLOSED': 'bg-muted text-muted-foreground',
     };
-    return variants[stage] || 'bg-muted text-muted-foreground';
+    return variants[upperStatus] || 'bg-muted text-muted-foreground';
   };
 
-  const handleApprovalChange = (oppId: string, value: string) => {
+  const getTenderResultBadge = (result: string) => {
+    const upperResult = result?.toUpperCase() || '';
+    const variants: Record<string, string> = {
+      'ONGOING': 'bg-warning/20 text-warning',
+      'AWARDED': 'bg-success/20 text-success',
+    };
+    return variants[upperResult] || 'bg-muted/50 text-muted-foreground';
+  };
+
+  const handleApprovalChange = (tenderId: string, value: string) => {
     if (!user) return;
     if (value === 'approved') {
-      approveOpportunity(oppId, user.displayName, user.role);
+      approveOpportunity(tenderId, user.displayName, user.role);
     }
   };
 
-  const handleRevertApproval = (oppId: string) => {
+  const handleRevertApproval = (tenderId: string) => {
     if (!user || !isMaster) return;
-    revertApproval(oppId, user.displayName, user.role);
-  };
-
-  const getTenderType = (opp: Opportunity): string => {
-    // Check opportunityClassification for EOI or Tender type
-    const classification = opp.opportunityClassification?.toLowerCase() || '';
-    if (classification.includes('eoi')) return 'EOI';
-    if (classification.includes('tender')) return 'Tender';
-    return opp.opportunityClassification || '—';
-  };
-
-  const getBidNoBid = (opp: Opportunity): 'Bid' | 'No Bid' | 'Pending' => {
-    // Determine based on qualification status or explicit field
-    if (opp.qualificationStatus?.toLowerCase().includes('qualified')) return 'Bid';
-    if (opp.qualificationStatus?.toLowerCase().includes('not qualified')) return 'No Bid';
-    if (opp.canonicalStage === 'Lost/Regretted' || opp.canonicalStage === 'On Hold/Paused') return 'No Bid';
-    if (opp.canonicalStage === 'Awarded' || opp.canonicalStage === 'Submitted') return 'Bid';
-    return 'Pending';
+    revertApproval(tenderId, user.displayName, user.role);
   };
 
   return (
@@ -96,22 +95,9 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
               <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-48 h-9" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32 h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                {STAGE_ORDER.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                <SelectItem value="Lost/Regretted">Lost</SelectItem>
-                <SelectItem value="On Hold/Paused">On Hold</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={groupFilter} onValueChange={setGroupFilter}>
-              <SelectTrigger className="w-24 h-9"><SelectValue placeholder="Group" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="GES">GES</SelectItem>
-                <SelectItem value="GDS">GDS</SelectItem>
-                <SelectItem value="GTN">GTN</SelectItem>
-                <SelectItem value="GTS">GTS</SelectItem>
+                {AVENIR_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
             <Tooltip>
@@ -136,59 +122,53 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
             <TableHeader className="sticky top-0 bg-card z-10">
               <TableRow>
                 <TableHead className="w-24">Ref No.</TableHead>
-                <TableHead>Tender Name</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Client</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead className="font-bold">RFP Received</TableHead>
                 <TableHead>Lead</TableHead>
                 <TableHead className="text-right">Value</TableHead>
-                <TableHead>Bid/No Bid</TableHead>
+                <TableHead>AVENIR STATUS</TableHead>
+                <TableHead>TENDER RESULT</TableHead>
                 <TableHead>Approval</TableHead>
-                <TableHead className="w-16"></TableHead>
+                <TableHead className="w-16">Remarks</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.slice(0, 50).map((opp) => {
-                const approvalStatus = getApprovalStatus(opp.id);
-                const bidNoBid = getBidNoBid(opp);
+              {filteredData.slice(0, 50).map((tender) => {
+                const approvalStatus = getApprovalStatus(tender.id);
                 return (
-                  <TableRow key={opp.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onSelectOpportunity(opp)}>
-                    <TableCell className="font-mono text-xs">{opp.opportunityRefNo}</TableCell>
-                    <TableCell className="max-w-[200px]">
-                      <span className="text-primary hover:underline font-medium truncate block" title={opp.tenderName}>
-                        {opp.tenderName}
-                      </span>
-                    </TableCell>
+                  <TableRow 
+                    key={tender.id} 
+                    className="cursor-pointer hover:bg-muted/50" 
+                    onClick={() => onSelectTender?.(tender)}
+                  >
+                    <TableCell className="font-mono text-xs">{tender.refNo || '—'}</TableCell>
                     <TableCell>
-                      <Badge variant={getTenderType(opp) === 'EOI' ? 'outline' : 'secondary'} className="text-xs">
-                        {getTenderType(opp)}
+                      <Badge variant="outline" className="text-xs">
+                        {tender.tenderType || '—'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="max-w-[120px] truncate">{opp.clientName}</TableCell>
-                    <TableCell><Badge className={getStatusBadge(opp.canonicalStage)}>{opp.canonicalStage}</Badge></TableCell>
+                    <TableCell className="max-w-[120px] truncate">{tender.client || '—'}</TableCell>
                     <TableCell className="font-bold text-sm">
-                      {opp.dateTenderReceived || <span className="text-muted-foreground font-normal">—</span>}
+                      {tender.rfpReceivedDate || <span className="text-muted-foreground font-normal">—</span>}
                     </TableCell>
-                    <TableCell>{opp.internalLead || <span className="text-muted-foreground text-xs">Unassigned</span>}</TableCell>
+                    <TableCell>{tender.lead || <span className="text-muted-foreground text-xs">Unassigned</span>}</TableCell>
                     <TableCell className="text-right font-mono">
-                      <div className="flex items-center justify-end gap-1">
-                        {formatCurrency(opp.opportunityValue)}
-                        {opp.opportunityValue_imputed && (
-                          <Tooltip>
-                            <TooltipTrigger><Info className="h-3 w-3 text-warning" /></TooltipTrigger>
-                            <TooltipContent className="max-w-xs"><p className="text-xs">{opp.opportunityValue_imputation_reason}</p></TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
+                      {tender.value > 0 ? formatCurrency(tender.value) : '—'}
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={bidNoBid === 'Bid' ? 'default' : bidNoBid === 'No Bid' ? 'destructive' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {bidNoBid}
+                      <Badge className={getStatusBadge(tender.avenirStatus)}>
+                        {tender.avenirStatus || '—'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {tender.tenderResult ? (
+                        <Badge className={getTenderResultBadge(tender.tenderResult)}>
+                          {tender.tenderResult}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {approvalStatus === 'approved' ? (
@@ -204,7 +184,7 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-6 w-6"
-                                  onClick={() => handleRevertApproval(opp.id)}
+                                  onClick={() => handleRevertApproval(tender.id)}
                                 >
                                   <RotateCcw className="h-3 w-3 text-muted-foreground hover:text-destructive" />
                                 </Button>
@@ -216,7 +196,7 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                       ) : isAdmin ? (
                         <Select
                           value={approvalStatus}
-                          onValueChange={(value) => handleApprovalChange(opp.id, value)}
+                          onValueChange={(value) => handleApprovalChange(tender.id, value)}
                         >
                           <SelectTrigger className="h-7 w-[100px] text-xs">
                             <SelectValue />
@@ -243,11 +223,40 @@ export function OpportunitiesTable({ data, onSelectOpportunity }: OpportunitiesT
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {opp.isAtRisk && <AlertTriangle className="h-4 w-4 text-warning" />}
-                        {opp.willMissDeadline && <AlertTriangle className="h-4 w-4 text-destructive" />}
-                      </div>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {(tender.tenderStatusRemark || tender.remarksReason) && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-80">
+                            <div className="space-y-2">
+                              {tender.tenderStatusRemark && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground">Tender Status</p>
+                                  <p className="text-sm">{tender.tenderStatusRemark}</p>
+                                </div>
+                              )}
+                              {tender.remarksReason && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground">Remarks/Reason</p>
+                                  <p className="text-sm">{tender.remarksReason}</p>
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                      {tender.isSubmissionNear && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                          </TooltipTrigger>
+                          <TooltipContent>Submission Near (within 7 days of received)</TooltipContent>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
