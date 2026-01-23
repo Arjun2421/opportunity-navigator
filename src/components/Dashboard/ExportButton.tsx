@@ -1,46 +1,45 @@
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Opportunity } from '@/data/opportunityData';
+import { TenderData } from '@/services/dataCollection';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useApproval } from '@/contexts/ApprovalContext';
 import * as XLSX from 'xlsx';
 
 interface ExportButtonProps {
-  data: Opportunity[];
+  data: TenderData[];
   filename?: string;
 }
 
-export function ExportButton({ data, filename = 'opportunities' }: ExportButtonProps) {
+export function ExportButton({ data, filename = 'tenders' }: ExportButtonProps) {
   const { currency, convertValue } = useCurrency();
   const { getApprovalStatus } = useApproval();
 
   const handleExport = () => {
     const currencySymbol = currency === 'AED' ? 'AED' : 'USD';
     
-    const exportData = data.map((opp) => ({
-      'Ref No': opp.opportunityRefNo,
-      'Tender Name': opp.tenderName,
-      'Client': opp.clientName,
-      'Client Type': opp.clientType,
-      'Status': opp.canonicalStage,
-      'Group': opp.groupClassification,
-      'Lead': opp.internalLead || 'Unassigned',
-      [`Value (${currencySymbol})`]: Math.round(convertValue(opp.opportunityValue)),
-      'Probability (%)': opp.probability,
-      [`Expected Value (${currencySymbol})`]: Math.round(convertValue(opp.expectedValue)),
-      'RFP Received': opp.dateTenderReceived || '',
-      'Planned Submission': opp.tenderPlannedSubmissionDate || '',
-      'Submitted Date': opp.tenderSubmittedDate || '',
-      'Last Contact': opp.lastContactDate || '',
-      'At Risk': opp.isAtRisk ? 'Yes' : 'No',
-      'Approval Status': getApprovalStatus(opp.id) === 'approved' ? 'Approved' : 'Pending',
-      'Partner': opp.partnerName || '',
-      'Remarks': opp.remarks || '',
+    const exportData = data.map((tender) => ({
+      'Ref No': tender.refNo,
+      'Tender Name': tender.tenderName,
+      'Client': tender.client,
+      'Type': tender.tenderType,
+      'Lead': tender.lead || 'Unassigned',
+      [`Value (${currencySymbol})`]: Math.round(convertValue(tender.value)),
+      'RFP Received': tender.rfpReceivedDate || '',
+      'AVENIR STATUS': tender.avenirStatus,
+      'TENDER RESULT': tender.tenderResult || '',
+      'Submission Near': tender.isSubmissionNear ? 'Yes' : 'No',
+      'Approval Status': getApprovalStatus(tender.refNo) === 'approved' ? 'Approved' : 'Pending',
+      'Tender Status Remark': tender.tenderStatusRemark || '',
+      'Remarks/Reason': tender.remarksReason || '',
     }));
+
+    if (exportData.length === 0) {
+      return;
+    }
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Opportunities');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tenders');
 
     // Auto-size columns
     const maxWidths = Object.keys(exportData[0] || {}).map((key) => ({
