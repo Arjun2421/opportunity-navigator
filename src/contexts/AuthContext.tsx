@@ -1,7 +1,4 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { useMsal, useIsAuthenticated } from '@azure/msal-react';
-import { AccountInfo } from '@azure/msal-browser';
-import { loginRequest, isDev } from '@/config/msalConfig';
 
 export type UserRole = 'master' | 'admin' | 'basic';
 
@@ -10,7 +7,6 @@ export interface User {
   email: string;
   displayName: string;
   role: UserRole;
-  isDevUser?: boolean; // Flag for development users
 }
 
 interface AuthContextType {
@@ -18,52 +14,44 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isMaster: boolean;
   isAdmin: boolean;
-  login: (email?: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithMicrosoft: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   getAllUsers: () => User[];
   updateUserRole: (userId: string, newRole: UserRole) => void;
-  isDevMode: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Master user email - this user always has master role
-const MASTER_EMAIL = 'master@example.com';
-
-// Development demo users (only available in dev mode)
-const DEV_USERS: { email: string; password: string; user: User }[] = [
+// Demo users for login
+const DEMO_USERS: { email: string; password: string; user: User }[] = [
   {
     email: 'master@example.com',
     password: 'master123',
     user: {
-      id: 'dev-0',
+      id: 'user-0',
       email: 'master@example.com',
-      displayName: 'Master User (Dev)',
+      displayName: 'Master User',
       role: 'master',
-      isDevUser: true,
     },
   },
   {
     email: 'admin@example.com',
     password: 'admin123',
     user: {
-      id: 'dev-1',
+      id: 'user-1',
       email: 'admin@example.com',
-      displayName: 'Admin User (Dev)',
+      displayName: 'Admin User',
       role: 'admin',
-      isDevUser: true,
     },
   },
   {
     email: 'user@example.com',
     password: 'user123',
     user: {
-      id: 'dev-2',
+      id: 'user-2',
       email: 'user@example.com',
-      displayName: 'Basic User (Dev)',
+      displayName: 'Basic User',
       role: 'basic',
-      isDevUser: true,
     },
   },
 ];
@@ -101,9 +89,6 @@ function persistAllUsers(users: User[]) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { instance, accounts } = useMsal();
-  const isMsalAuthenticated = useIsAuthenticated();
-  
   const [userRoles, setUserRoles] = useState<Record<string, UserRole>>(loadUserRoles);
   const [allUsers, setAllUsers] = useState<User[]>(loadAllUsers);
   const [user, setUser] = useState<User | null>(() => {
@@ -118,104 +103,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
 
-  // Sync MSAL account to user state
   useEffect(() => {
-    if (isMsalAuthenticated && accounts.length > 0) {
-      const account = accounts[0];
-      const email = account.username?.toLowerCase() || '';
-      const userId = account.localAccountId || account.homeAccountId || email;
+    persistUserRoles(userRoles);
+  }, [userRoles]);
+
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    if (!email || !password) {
+      return { success: false, error: 'Email and password required' };
+    }
+
+    const foundUser = DEMO_USERS.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    );
+
+    if (foundUser) {
+      // Check if role was customized
+      const customRole = userRoles[foundUser.user.id];
+      const userWithRole = customRole 
+        ? { ...foundUser.user, role: customRole }
+        : foundUser.user;
       
-      // Determine role: check if master email or use stored role
-      let role: UserRole = 'basic';
-      if (email === MASTER_EMAIL.toLowerCase()) {
-        role = 'master';
-      } else if (userRoles[userId]) {
-        role = userRoles[userId];
-      }
-
-      const msalUser: User = {
-        id: userId,
-        email: email,
-        displayName: account.name || email,
-        role: role,
-        isDevUser: false,
-      };
-
-      setUser(msalUser);
-      localStorage.setItem('auth_user', JSON.stringify(msalUser));
-
+      setUser(userWithRole);
+      localStorage.setItem('auth_user', JSON.stringify(userWithRole));
+      
       // Add to all users if not exists
       setAllUsers(prev => {
-        const exists = prev.some(u => u.id === msalUser.id);
+        const exists = prev.some(u => u.id === userWithRole.id);
         if (!exists) {
-          const updated = [...prev, msalUser];
+          const updated = [...prev, userWithRole];
           persistAllUsers(updated);
           return updated;
         }
         return prev;
       });
-    }
-  }, [isMsalAuthenticated, accounts, userRoles]);
-
-  useEffect(() => {
-    persistUserRoles(userRoles);
-  }, [userRoles]);
-
-  const loginWithMicrosoft = useCallback(async () => {
-    try {
-      await instance.loginPopup(loginRequest);
-    } catch (error) {
-      console.error('Microsoft login failed:', error);
-      throw error;
-    }
-  }, [instance]);
-
-  // Dev login for testing
-  const login = useCallback(async (email?: string, password?: string): Promise<{ success: boolean; error?: string }> => {
-    if (!isDev) {
-      return { success: false, error: 'Development login not available in production' };
-    }
-
-    if (!email || !password) {
-      return { success: false, error: 'Email and password required' };
-    }
-
-    const foundUser = DEV_USERS.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-
-    if (foundUser) {
-      setUser(foundUser.user);
-      localStorage.setItem('auth_user', JSON.stringify(foundUser.user));
+      
       return { success: true };
     }
 
     return { success: false, error: 'Invalid email or password' };
-  }, []);
+  }, [userRoles]);
 
   const logout = useCallback(() => {
-    const currentUser = user;
     setUser(null);
     localStorage.removeItem('auth_user');
     sessionStorage.removeItem('adminAuthenticated');
-
-    // If it was an MSAL user, also logout from Microsoft
-    if (currentUser && !currentUser.isDevUser && isMsalAuthenticated) {
-      instance.logoutPopup({
-        postLogoutRedirectUri: window.location.origin + '/login',
-      }).catch(console.error);
-    }
-  }, [user, instance, isMsalAuthenticated]);
+  }, []);
 
   const getAllUsers = useCallback((): User[] => {
-    // Combine dev users (in dev mode) with OAuth users
-    if (isDev) {
-      const devUsers = DEV_USERS.map(u => u.user);
-      const oauthUsers = allUsers.filter(u => !u.isDevUser);
-      return [...devUsers, ...oauthUsers];
-    }
-    return allUsers;
-  }, [allUsers]);
+    // Return demo users with any role customizations
+    return DEMO_USERS.map(u => {
+      const customRole = userRoles[u.user.id];
+      return customRole ? { ...u.user, role: customRole } : u.user;
+    });
+  }, [userRoles]);
 
   const updateUserRole = useCallback((userId: string, newRole: UserRole) => {
     // Update the roles map
@@ -246,7 +186,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = user !== null;
   const isMaster = user?.role === 'master';
-  // Admin now only has approval power, not full admin access
   const isAdmin = user?.role === 'admin' || user?.role === 'master';
 
   return (
@@ -256,11 +195,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMaster, 
       isAdmin, 
       login, 
-      loginWithMicrosoft,
       logout, 
       getAllUsers, 
       updateUserRole,
-      isDevMode: isDev,
     }}>
       {children}
     </AuthContext.Provider>
