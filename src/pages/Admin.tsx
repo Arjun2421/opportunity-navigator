@@ -1,8 +1,5 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -20,6 +17,7 @@ import {
   Sheet,
   Crown,
   Clock,
+  Table2,
 } from 'lucide-react';
 import { calculateDataHealth } from '@/data/opportunityData';
 import { useData } from '@/contexts/DataContext';
@@ -35,6 +33,7 @@ import AccessControl from '@/components/Admin/AccessControl';
 import AdminSettings from '@/components/Admin/AdminSettings';
 import ApprovalLogsPanel from '@/components/Admin/ApprovalLogsPanel';
 import UserRolesPanel from '@/components/Admin/UserRolesPanel';
+import DataMappingPanel from '@/components/Admin/DataMappingPanel';
 import aedSymbol from '@/assets/aed-symbol.png';
 
 const Admin = () => {
@@ -143,10 +142,14 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="gsheets">
-        <TabsList className="grid grid-cols-5 md:grid-cols-10 w-full">
+        <TabsList className="grid grid-cols-5 md:grid-cols-11 w-full">
           <TabsTrigger value="gsheets" className="gap-2">
             <Sheet className="h-4 w-4" />
             <span className="hidden md:inline">Sheets</span>
+          </TabsTrigger>
+          <TabsTrigger value="mapping" className="gap-2">
+            <Table2 className="h-4 w-4" />
+            <span className="hidden md:inline">Mapping</span>
           </TabsTrigger>
           <TabsTrigger value="sharepoint" className="gap-2">
             <CloudUpload className="h-4 w-4" />
@@ -192,6 +195,10 @@ const Admin = () => {
 
         <TabsContent value="gsheets" className="mt-4">
           <GoogleSheetsSync />
+        </TabsContent>
+
+        <TabsContent value="mapping" className="mt-4">
+          <DataMappingPanel />
         </TabsContent>
 
         <TabsContent value="sharepoint" className="mt-4">
