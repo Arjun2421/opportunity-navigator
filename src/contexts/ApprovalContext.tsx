@@ -1,30 +1,47 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 
-export type ApprovalStatus = 'pending' | 'approved';
+export type ApprovalStatus = 'pending' | 'proposal_head_approved' | 'fully_approved';
 
 export interface ApprovalLogEntry {
   id: string;
   opportunityId: string;
-  action: 'approved' | 'reverted';
+  action: 'proposal_head_approved' | 'svp_approved' | 'reverted';
   performedBy: string;
   performedByRole: string;
   timestamp: string;
+  group?: string;
+}
+
+interface ApprovalState {
+  proposalHeadApproved: boolean;
+  proposalHeadBy?: string;
+  proposalHeadAt?: string;
+  svpApproved: boolean;
+  svpBy?: string;
+  svpAt?: string;
 }
 
 interface ApprovalContextType {
-  approvals: Record<string, ApprovalStatus>;
+  approvals: Record<string, ApprovalState>;
   approvalLogs: ApprovalLogEntry[];
   getApprovalStatus: (opportunityId: string) => ApprovalStatus;
-  approveOpportunity: (opportunityId: string, performedBy: string, performedByRole: string) => void;
-  revertApproval: (opportunityId: string, performedBy: string, performedByRole: string) => void; // Master only
-  refreshApprovals: () => void; // Manual refresh from localStorage
+  getApprovalState: (opportunityId: string) => ApprovalState;
+  approveAsProposalHead: (opportunityId: string, performedBy: string) => void;
+  approveAsSVP: (opportunityId: string, performedBy: string, group: string) => void;
+  revertApproval: (opportunityId: string, performedBy: string, performedByRole: string) => void;
+  refreshApprovals: () => void;
 }
 
 const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined);
 
+const defaultApprovalState: ApprovalState = {
+  proposalHeadApproved: false,
+  svpApproved: false,
+};
+
 export function ApprovalProvider({ children }: { children: ReactNode }) {
-  const [approvals, setApprovals] = useState<Record<string, ApprovalStatus>>(() => {
-    const saved = localStorage.getItem('tender_approvals');
+  const [approvals, setApprovals] = useState<Record<string, ApprovalState>>(() => {
+    const saved = localStorage.getItem('tender_approvals_v2');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -48,30 +65,75 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    localStorage.setItem('tender_approvals', JSON.stringify(approvals));
+    localStorage.setItem('tender_approvals_v2', JSON.stringify(approvals));
   }, [approvals]);
 
   useEffect(() => {
     localStorage.setItem('approval_logs', JSON.stringify(approvalLogs));
   }, [approvalLogs]);
 
-  const getApprovalStatus = useCallback((opportunityId: string): ApprovalStatus => {
-    return approvals[opportunityId] || 'pending';
+  const getApprovalState = useCallback((opportunityId: string): ApprovalState => {
+    return approvals[opportunityId] || defaultApprovalState;
   }, [approvals]);
 
-  const approveOpportunity = useCallback((opportunityId: string, performedBy: string, performedByRole: string) => {
+  const getApprovalStatus = useCallback((opportunityId: string): ApprovalStatus => {
+    const state = approvals[opportunityId];
+    if (!state) return 'pending';
+    if (state.svpApproved) return 'fully_approved';
+    if (state.proposalHeadApproved) return 'proposal_head_approved';
+    return 'pending';
+  }, [approvals]);
+
+  const approveAsProposalHead = useCallback((opportunityId: string, performedBy: string) => {
     setApprovals((prev) => {
-      if (prev[opportunityId] === 'approved') return prev;
-      return { ...prev, [opportunityId]: 'approved' };
+      const existing = prev[opportunityId] || { ...defaultApprovalState };
+      if (existing.proposalHeadApproved) return prev;
+      return {
+        ...prev,
+        [opportunityId]: {
+          ...existing,
+          proposalHeadApproved: true,
+          proposalHeadBy: performedBy,
+          proposalHeadAt: new Date().toISOString(),
+        },
+      };
     });
     setApprovalLogs((prev) => [
       {
         id: crypto.randomUUID(),
         opportunityId,
-        action: 'approved',
+        action: 'proposal_head_approved',
         performedBy,
-        performedByRole,
+        performedByRole: 'Proposal Head',
         timestamp: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+  }, []);
+
+  const approveAsSVP = useCallback((opportunityId: string, performedBy: string, group: string) => {
+    setApprovals((prev) => {
+      const existing = prev[opportunityId] || { ...defaultApprovalState };
+      if (!existing.proposalHeadApproved || existing.svpApproved) return prev;
+      return {
+        ...prev,
+        [opportunityId]: {
+          ...existing,
+          svpApproved: true,
+          svpBy: performedBy,
+          svpAt: new Date().toISOString(),
+        },
+      };
+    });
+    setApprovalLogs((prev) => [
+      {
+        id: crypto.randomUUID(),
+        opportunityId,
+        action: 'svp_approved',
+        performedBy,
+        performedByRole: `SVP (${group})`,
+        timestamp: new Date().toISOString(),
+        group,
       },
       ...prev,
     ]);
@@ -79,7 +141,8 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
 
   const revertApproval = useCallback((opportunityId: string, performedBy: string, performedByRole: string) => {
     setApprovals((prev) => {
-      if (prev[opportunityId] !== 'approved') return prev;
+      const existing = prev[opportunityId];
+      if (!existing) return prev;
       const copy = { ...prev };
       delete copy[opportunityId];
       return copy;
@@ -98,26 +161,31 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshApprovals = useCallback(() => {
-    const savedApprovals = localStorage.getItem('tender_approvals');
+    const savedApprovals = localStorage.getItem('tender_approvals_v2');
     if (savedApprovals) {
       try {
         setApprovals(JSON.parse(savedApprovals));
-      } catch {
-        // Keep current state if parse fails
-      }
+      } catch {}
     }
     const savedLogs = localStorage.getItem('approval_logs');
     if (savedLogs) {
       try {
         setApprovalLogs(JSON.parse(savedLogs));
-      } catch {
-        // Keep current state if parse fails
-      }
+      } catch {}
     }
   }, []);
 
   return (
-    <ApprovalContext.Provider value={{ approvals, approvalLogs, getApprovalStatus, approveOpportunity, revertApproval, refreshApprovals }}>
+    <ApprovalContext.Provider value={{
+      approvals,
+      approvalLogs,
+      getApprovalStatus,
+      getApprovalState,
+      approveAsProposalHead,
+      approveAsSVP,
+      revertApproval,
+      refreshApprovals,
+    }}>
       {children}
     </ApprovalContext.Provider>
   );

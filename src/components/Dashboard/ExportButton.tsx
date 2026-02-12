@@ -28,7 +28,12 @@ export function ExportButton({ data, filename = 'tenders' }: ExportButtonProps) 
       'AVENIR STATUS': tender.avenirStatus,
       'TENDER RESULT': tender.tenderResult || '',
       'Submission Near': tender.isSubmissionNear ? 'Yes' : 'No',
-      'Approval Status': getApprovalStatus(tender.refNo) === 'approved' ? 'Approved' : 'Pending',
+      'Approval Status': (() => {
+        const status = getApprovalStatus(tender.id);
+        if (status === 'fully_approved') return 'Fully Approved';
+        if (status === 'proposal_head_approved') return 'PH Approved';
+        return 'Pending';
+      })(),
       'Tender Status Remark': tender.tenderStatusRemark || '',
       'Remarks/Reason': tender.remarksReason || '',
     }));
