@@ -98,6 +98,9 @@ const Login = () => {
             <p className="text-xs font-medium text-muted-foreground mb-2">Demo Credentials:</p>
             <div className="space-y-1 text-xs">
               <p><strong>Master:</strong> master@example.com / master123</p>
+              <p><strong>Proposal Head:</strong> proposalhead@example.com / ph123</p>
+              <p><strong>SVP (GES):</strong> svp-ges@example.com / svp123</p>
+              <p><strong>SVP (GDS):</strong> svp-gds@example.com / svp123</p>
               <p><strong>Admin:</strong> admin@example.com / admin123</p>
               <p><strong>Basic:</strong> user@example.com / user123</p>
             </div>
@@ -105,10 +108,12 @@ const Login = () => {
 
           {/* Role descriptions */}
           <div className="p-4 bg-muted/50 rounded-lg border">
-            <p className="text-xs font-medium mb-2">User Roles:</p>
+            <p className="text-xs font-medium mb-2">Two-Step Approval Roles:</p>
             <div className="space-y-1 text-xs text-muted-foreground">
-              <p><strong>Master:</strong> Full control - Admin panel, role management, approval revert</p>
-              <p><strong>Admin:</strong> Can approve tender values</p>
+              <p><strong>Master:</strong> Full control - role management, revert approvals</p>
+              <p><strong>Proposal Head:</strong> Step 1 approval for all tenders</p>
+              <p><strong>SVP:</strong> Step 2 final approval for their assigned group</p>
+              <p><strong>Admin:</strong> Dashboard access</p>
               <p><strong>Basic:</strong> View-only access</p>
             </div>
           </div>

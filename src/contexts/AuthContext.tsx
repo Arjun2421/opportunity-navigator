@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 
-export type UserRole = 'master' | 'admin' | 'basic';
+export type UserRole = 'master' | 'admin' | 'proposal_head' | 'svp' | 'basic';
 
 export interface User {
   id: string;
   email: string;
   displayName: string;
   role: UserRole;
+  assignedGroup?: string; // For SVP: which group they're SVP of
 }
 
 interface AuthContextType {
@@ -14,10 +15,12 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isMaster: boolean;
   isAdmin: boolean;
+  isProposalHead: boolean;
+  isSVP: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   getAllUsers: () => User[];
-  updateUserRole: (userId: string, newRole: UserRole) => void;
+  updateUserRole: (userId: string, newRole: UserRole, assignedGroup?: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,10 +38,42 @@ const DEMO_USERS: { email: string; password: string; user: User }[] = [
     },
   },
   {
+    email: 'proposalhead@example.com',
+    password: 'ph123',
+    user: {
+      id: 'user-1',
+      email: 'proposalhead@example.com',
+      displayName: 'Proposal Head',
+      role: 'proposal_head',
+    },
+  },
+  {
+    email: 'svp-ges@example.com',
+    password: 'svp123',
+    user: {
+      id: 'user-2',
+      email: 'svp-ges@example.com',
+      displayName: 'SVP - GES',
+      role: 'svp',
+      assignedGroup: 'GES',
+    },
+  },
+  {
+    email: 'svp-gds@example.com',
+    password: 'svp123',
+    user: {
+      id: 'user-3',
+      email: 'svp-gds@example.com',
+      displayName: 'SVP - GDS',
+      role: 'svp',
+      assignedGroup: 'GDS',
+    },
+  },
+  {
     email: 'admin@example.com',
     password: 'admin123',
     user: {
-      id: 'user-1',
+      id: 'user-4',
       email: 'admin@example.com',
       displayName: 'Admin User',
       role: 'admin',
@@ -48,7 +83,7 @@ const DEMO_USERS: { email: string; password: string; user: User }[] = [
     email: 'user@example.com',
     password: 'user123',
     user: {
-      id: 'user-2',
+      id: 'user-5',
       email: 'user@example.com',
       displayName: 'Basic User',
       role: 'basic',
@@ -56,7 +91,7 @@ const DEMO_USERS: { email: string; password: string; user: User }[] = [
   },
 ];
 
-function loadUserRoles(): Record<string, UserRole> {
+function loadUserRoles(): Record<string, { role: UserRole; assignedGroup?: string }> {
   const saved = localStorage.getItem('user_roles');
   if (saved) {
     try {
@@ -68,7 +103,7 @@ function loadUserRoles(): Record<string, UserRole> {
   return {};
 }
 
-function persistUserRoles(roles: Record<string, UserRole>) {
+function persistUserRoles(roles: Record<string, { role: UserRole; assignedGroup?: string }>) {
   localStorage.setItem('user_roles', JSON.stringify(roles));
 }
 
@@ -89,7 +124,7 @@ function persistAllUsers(users: User[]) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [userRoles, setUserRoles] = useState<Record<string, UserRole>>(loadUserRoles);
+  const [userRoles, setUserRoles] = useState<Record<string, { role: UserRole; assignedGroup?: string }>>(loadUserRoles);
   const [allUsers, setAllUsers] = useState<User[]>(loadAllUsers);
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('auth_user');
@@ -117,16 +152,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     if (foundUser) {
-      // Check if role was customized
       const customRole = userRoles[foundUser.user.id];
       const userWithRole = customRole 
-        ? { ...foundUser.user, role: customRole }
+        ? { ...foundUser.user, role: customRole.role, assignedGroup: customRole.assignedGroup }
         : foundUser.user;
       
       setUser(userWithRole);
       localStorage.setItem('auth_user', JSON.stringify(userWithRole));
       
-      // Add to all users if not exists
       setAllUsers(prev => {
         const exists = prev.some(u => u.id === userWithRole.id);
         if (!exists) {
@@ -150,33 +183,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getAllUsers = useCallback((): User[] => {
-    // Return demo users with any role customizations
     return DEMO_USERS.map(u => {
       const customRole = userRoles[u.user.id];
-      return customRole ? { ...u.user, role: customRole } : u.user;
+      return customRole 
+        ? { ...u.user, role: customRole.role, assignedGroup: customRole.assignedGroup }
+        : u.user;
     });
   }, [userRoles]);
 
-  const updateUserRole = useCallback((userId: string, newRole: UserRole) => {
-    // Update the roles map
+  const updateUserRole = useCallback((userId: string, newRole: UserRole, assignedGroup?: string) => {
     setUserRoles(prev => {
-      const updated = { ...prev, [userId]: newRole };
+      const updated = { ...prev, [userId]: { role: newRole, assignedGroup } };
       return updated;
     });
 
-    // Update all users list
     setAllUsers(prev => {
       const updated = prev.map(u => 
-        u.id === userId ? { ...u, role: newRole } : u
+        u.id === userId ? { ...u, role: newRole, assignedGroup } : u
       );
       persistAllUsers(updated);
       return updated;
     });
 
-    // If the current user's role was changed, update them too
     setUser(current => {
       if (current && current.id === userId) {
-        const updated = { ...current, role: newRole };
+        const updated = { ...current, role: newRole, assignedGroup };
         localStorage.setItem('auth_user', JSON.stringify(updated));
         return updated;
       }
@@ -187,13 +218,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = user !== null;
   const isMaster = user?.role === 'master';
   const isAdmin = user?.role === 'admin' || user?.role === 'master';
+  const isProposalHead = user?.role === 'proposal_head' || isMaster;
+  const isSVP = user?.role === 'svp' || isMaster;
 
   return (
     <AuthContext.Provider value={{ 
       user, 
       isAuthenticated, 
       isMaster, 
-      isAdmin, 
+      isAdmin,
+      isProposalHead,
+      isSVP,
       login, 
       logout, 
       getAllUsers, 

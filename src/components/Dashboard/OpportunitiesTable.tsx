@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, Search, CheckCircle, Clock, RotateCcw, RefreshCw, MessageSquare } from 'lucide-react';
+import { AlertTriangle, Search, CheckCircle, Clock, RotateCcw, RefreshCw, MessageSquare, ArrowRight } from 'lucide-react';
 import { TenderData } from '@/services/dataCollection';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useApproval } from '@/contexts/ApprovalContext';
@@ -28,8 +28,8 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const { formatCurrency } = useCurrency();
-  const { getApprovalStatus, approveOpportunity, revertApproval, refreshApprovals } = useApproval();
-  const { isAdmin, isMaster, user } = useAuth();
+  const { getApprovalStatus, getApprovalState, approveAsProposalHead, approveAsSVP, revertApproval, refreshApprovals } = useApproval();
+  const { isProposalHead, isSVP, isMaster, user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = () => {
@@ -72,16 +72,10 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
     return variants[upperResult] || 'bg-muted/50 text-muted-foreground';
   };
 
-  const handleApprovalChange = (tenderId: string, value: string) => {
-    if (!user) return;
-    if (value === 'approved') {
-      approveOpportunity(tenderId, user.displayName, user.role);
-    }
-  };
-
-  const handleRevertApproval = (tenderId: string) => {
-    if (!user || !isMaster) return;
-    revertApproval(tenderId, user.displayName, user.role);
+  const canSVPApprove = (tender: TenderData) => {
+    if (isMaster) return true;
+    if (!isSVP || !user?.assignedGroup) return false;
+    return tender.groupClassification?.toUpperCase() === user.assignedGroup?.toUpperCase();
   };
 
   return (
@@ -124,18 +118,20 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
                 <TableHead className="w-24">Ref No.</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Client</TableHead>
+                <TableHead>Group</TableHead>
                 <TableHead className="font-bold">RFP Received</TableHead>
                 <TableHead>Lead</TableHead>
                 <TableHead className="text-right">Value</TableHead>
                 <TableHead>AVENIR STATUS</TableHead>
                 <TableHead>TENDER RESULT</TableHead>
-                <TableHead>Approval</TableHead>
+                <TableHead className="w-[200px]">Approval</TableHead>
                 <TableHead className="w-16">Remarks</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.slice(0, 50).map((tender) => {
                 const approvalStatus = getApprovalStatus(tender.id);
+                const approvalState = getApprovalState(tender.id);
                 return (
                   <TableRow 
                     key={tender.id} 
@@ -149,6 +145,11 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-[120px] truncate">{tender.client || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs font-mono">
+                        {tender.groupClassification || '—'}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="font-bold text-sm">
                       {tender.rfpReceivedDate || <span className="text-muted-foreground font-normal">—</span>}
                     </TableCell>
@@ -171,57 +172,24 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
                       )}
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      {approvalStatus === 'approved' ? (
-                        <div className="flex items-center gap-1">
-                          <Badge className="bg-success/20 text-success gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Approved
-                          </Badge>
-                          {isMaster && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6"
-                                  onClick={() => handleRevertApproval(tender.id)}
-                                >
-                                  <RotateCcw className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Revert to Pending (Master only)</TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      ) : isAdmin ? (
-                        <Select
-                          value={approvalStatus}
-                          onValueChange={(value) => handleApprovalChange(tender.id, value)}
-                        >
-                          <SelectTrigger className="h-7 w-[100px] text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                Pending
-                              </span>
-                            </SelectItem>
-                            <SelectItem value="approved">
-                              <span className="flex items-center gap-1">
-                                <CheckCircle className="h-3 w-3" />
-                                Approved
-                              </span>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="secondary" className="gap-1">
-                          <Clock className="h-3 w-3" />
-                          Pending
-                        </Badge>
-                      )}
+                      <ApprovalCell
+                        tender={tender}
+                        approvalStatus={approvalStatus}
+                        approvalState={approvalState}
+                        isProposalHead={isProposalHead}
+                        canSVPApprove={canSVPApprove(tender)}
+                        isMaster={isMaster}
+                        user={user}
+                        onApproveProposalHead={() => {
+                          if (user) approveAsProposalHead(tender.id, user.displayName);
+                        }}
+                        onApproveSVP={() => {
+                          if (user) approveAsSVP(tender.id, user.displayName, tender.groupClassification);
+                        }}
+                        onRevert={() => {
+                          if (user) revertApproval(tender.id, user.displayName, user.role);
+                        }}
+                      />
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {(tender.tenderStatusRemark || tender.remarksReason) && (
@@ -269,5 +237,108 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// Extracted approval cell component for clarity
+interface ApprovalCellProps {
+  tender: TenderData;
+  approvalStatus: string;
+  approvalState: { proposalHeadApproved: boolean; proposalHeadBy?: string; svpApproved: boolean; svpBy?: string };
+  isProposalHead: boolean;
+  canSVPApprove: boolean;
+  isMaster: boolean;
+  user: any;
+  onApproveProposalHead: () => void;
+  onApproveSVP: () => void;
+  onRevert: () => void;
+}
+
+function ApprovalCell({
+  tender,
+  approvalStatus,
+  approvalState,
+  isProposalHead,
+  canSVPApprove,
+  isMaster,
+  user,
+  onApproveProposalHead,
+  onApproveSVP,
+  onRevert,
+}: ApprovalCellProps) {
+  if (approvalStatus === 'fully_approved') {
+    return (
+      <div className="flex items-center gap-1">
+        <Badge className="bg-success/20 text-success gap-1 text-xs">
+          <CheckCircle className="h-3 w-3" />
+          Fully Approved
+        </Badge>
+        {isMaster && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onRevert}>
+                <RotateCcw className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Revert to Pending (Master only)</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+    );
+  }
+
+  if (approvalStatus === 'proposal_head_approved') {
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1">
+          <Badge className="bg-info/20 text-info gap-1 text-xs">
+            <CheckCircle className="h-3 w-3" />
+            PH ✓
+          </Badge>
+          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+          {canSVPApprove ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-xs px-2"
+              onClick={onApproveSVP}
+            >
+              SVP Approve
+            </Button>
+          ) : (
+            <Badge variant="secondary" className="gap-1 text-xs">
+              <Clock className="h-3 w-3" />
+              Awaiting SVP
+            </Badge>
+          )}
+        </div>
+        {isMaster && (
+          <Button variant="ghost" size="sm" className="h-5 text-xs text-muted-foreground" onClick={onRevert}>
+            <RotateCcw className="h-3 w-3 mr-1" /> Revert
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // Pending state
+  return (
+    <div className="flex items-center gap-1">
+      {isProposalHead ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-6 text-xs px-2"
+          onClick={onApproveProposalHead}
+        >
+          PH Approve
+        </Button>
+      ) : (
+        <Badge variant="secondary" className="gap-1 text-xs">
+          <Clock className="h-3 w-3" />
+          Pending PH
+        </Badge>
+      )}
+    </div>
   );
 }
