@@ -1,28 +1,38 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { KPICards } from '@/components/Dashboard/KPICards';
 import { FunnelChart } from '@/components/Dashboard/FunnelChart';
 import { OpportunitiesTable } from '@/components/Dashboard/OpportunitiesTable';
 import { AtRiskWidget } from '@/components/Dashboard/AtRiskWidget';
 import { ClientLeaderboard } from '@/components/Dashboard/ClientLeaderboard';
 import { ExportButton } from '@/components/Dashboard/ExportButton';
+import { AdvancedFilters, FilterState, defaultFilters, applyFilters } from '@/components/Dashboard/AdvancedFilters';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle } from 'lucide-react';
-import { TenderData } from '@/services/dataCollection';
+import { TenderData, calculateKPIStats, calculateFunnelData, getClientData, getSubmissionNearTenders } from '@/services/dataCollection';
 import { useData } from '@/contexts/DataContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
+type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
+
+const KPI_TO_STATUSES: Record<KPIType, string[]> = {
+  active: ['WORKING', 'ONGOING', 'SUBMITTED', 'AWARDED'],
+  awarded: ['AWARDED'],
+  lost: ['LOST'],
+  regretted: ['REGRETTED'],
+  working: ['WORKING'],
+  tostart: ['TO START'],
+  ongoing: ['ONGOING'],
+  submission: [], // special handling
+};
+
 const Dashboard = () => {
   const { 
     tenders, 
-    kpiStats, 
-    funnelData, 
-    clientData, 
-    submissionNearTenders,
     isLoading, 
     error, 
     refreshData 
@@ -30,6 +40,8 @@ const Dashboard = () => {
   const { formatCurrency } = useCurrency();
   const [selectedTender, setSelectedTender] = useState<TenderData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [activeKPI, setActiveKPI] = useState<KPIType | null>(null);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -37,10 +49,59 @@ const Dashboard = () => {
     setIsRefreshing(false);
   };
 
-  const handleKPIClick = (kpiType: string) => {
-    // Could implement filtering based on KPI type
-    console.log('KPI clicked:', kpiType);
-  };
+  const handleKPIClick = useCallback((kpiType: KPIType) => {
+    if (activeKPI === kpiType) {
+      // Deselect - clear KPI filter
+      setActiveKPI(null);
+      setFilters(prev => ({ ...prev, statuses: [], showSubmissionNear: false }));
+    } else {
+      setActiveKPI(kpiType);
+      if (kpiType === 'submission') {
+        setFilters(prev => ({ ...prev, statuses: [], showSubmissionNear: true }));
+      } else {
+        setFilters(prev => ({ ...prev, statuses: KPI_TO_STATUSES[kpiType], showSubmissionNear: false }));
+      }
+    }
+  }, [activeKPI]);
+
+  const handleStageClick = useCallback((stage: string) => {
+    setFilters(prev => {
+      const hasStatus = prev.statuses.includes(stage);
+      return {
+        ...prev,
+        statuses: hasStatus
+          ? prev.statuses.filter(s => s !== stage)
+          : [...prev.statuses, stage],
+      };
+    });
+    setActiveKPI(null);
+  }, []);
+
+  const handleClientClick = useCallback((clientName: string) => {
+    setFilters(prev => {
+      const hasClient = prev.clients.includes(clientName);
+      return {
+        ...prev,
+        clients: hasClient
+          ? prev.clients.filter(c => c !== clientName)
+          : [...prev.clients, clientName],
+      };
+    });
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setFilters(defaultFilters);
+    setActiveKPI(null);
+  }, []);
+
+  // Apply filters to get filtered data
+  const filteredTenders = useMemo(() => applyFilters(tenders, filters), [tenders, filters]);
+
+  // Recalculate derived data from filtered tenders
+  const kpiStats = useMemo(() => calculateKPIStats(filteredTenders), [filteredTenders]);
+  const funnelData = useMemo(() => calculateFunnelData(filteredTenders), [filteredTenders]);
+  const clientData = useMemo(() => getClientData(filteredTenders), [filteredTenders]);
+  const submissionNearTenders = useMemo(() => getSubmissionNearTenders(filteredTenders), [filteredTenders]);
 
   if (isLoading) {
     return (
@@ -65,7 +126,7 @@ const Dashboard = () => {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Failed to load data from Google Sheets: {error}
+            Failed to load data: {error}
             <Button variant="outline" size="sm" className="ml-4" onClick={handleRefresh}>
               Retry
             </Button>
@@ -77,12 +138,12 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Refresh and Export */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
-            {tenders.length} tenders loaded from Google Sheets
+            {filteredTenders.length} of {tenders.length} tenders
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -95,26 +156,29 @@ const Dashboard = () => {
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh Data
           </Button>
-          <ExportButton data={tenders} filename="tenders" />
+          <ExportButton data={filteredTenders} filename="tenders" />
         </div>
       </div>
 
       {/* KPI Cards */}
-      <KPICards stats={kpiStats} onKPIClick={handleKPIClick} />
+      <KPICards stats={kpiStats} activeKPI={activeKPI} onKPIClick={handleKPIClick} />
 
-      {/* Tenders Table - Now above other widgets */}
-      <OpportunitiesTable data={tenders} onSelectTender={setSelectedTender} />
+      {/* Filters */}
+      <AdvancedFilters
+        data={tenders}
+        filters={filters}
+        onFiltersChange={(f) => { setFilters(f); setActiveKPI(null); }}
+        onClearFilters={handleClearFilters}
+      />
 
-      {/* Secondary Widgets Grid */}
+      {/* Tenders Table */}
+      <OpportunitiesTable data={filteredTenders} onSelectTender={setSelectedTender} />
+
+      {/* Secondary Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Funnel */}
-        <FunnelChart data={funnelData} />
-        
-        {/* Submission Near Widget */}
-        <AtRiskWidget data={submissionNearTenders} />
-        
-        {/* Client Leaderboard */}
-        <ClientLeaderboard data={clientData} />
+        <FunnelChart data={funnelData} onStageClick={handleStageClick} />
+        <AtRiskWidget data={submissionNearTenders} onSelectTender={setSelectedTender} />
+        <ClientLeaderboard data={clientData} onClientClick={handleClientClick} />
       </div>
 
       {/* Detail Sheet */}

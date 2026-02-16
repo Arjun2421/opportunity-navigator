@@ -1,15 +1,18 @@
-import { Target, Trophy, XCircle, Clock, ThumbsDown, PlayCircle, Pause, Activity, FileCheck } from 'lucide-react';
+import { Target, Trophy, XCircle, Clock, ThumbsDown, Zap, Play, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import aedSymbol from '@/assets/aed-symbol.png';
 import { KPIStats } from '@/services/dataCollection';
 
+type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
+
 interface KPICardsProps {
   stats: KPIStats;
-  onKPIClick?: (kpiType: string) => void;
+  activeKPI?: KPIType | null;
+  onKPIClick?: (kpiType: KPIType) => void;
 }
 
-export function KPICards({ stats, onKPIClick }: KPICardsProps) {
+export function KPICards({ stats, activeKPI, onKPIClick }: KPICardsProps) {
   const { currency, convertValue } = useCurrency();
 
   const formatCurrencyValue = (value: number) => {
@@ -45,7 +48,16 @@ export function KPICards({ stats, onKPIClick }: KPICardsProps) {
     <span className="text-sm font-bold">$</span>
   );
 
-  const kpis = [
+  const kpis: Array<{
+    label: string;
+    displayValue?: number;
+    currencyValue?: number;
+    isCurrency?: boolean;
+    Icon: any;
+    color: string;
+    bgColor: string;
+    type: KPIType;
+  }> = [
     { 
       label: 'Active Tenders', 
       displayValue: stats.activeTenders,
@@ -61,14 +73,11 @@ export function KPICards({ stats, onKPIClick }: KPICardsProps) {
       Icon: currency === 'AED' ? AedIcon : DollarIcon,
       color: 'text-info', 
       bgColor: 'bg-info/10', 
-      type: 'pipeline'
+      type: 'awarded'
     },
     { 
       label: 'Awarded', 
-      currencyValue: stats.awardedValue, 
       displayValue: stats.awardedCount,
-      isCurrency: true,
-      showCount: true,
       Icon: Trophy, 
       color: 'text-success', 
       bgColor: 'bg-success/10', 
@@ -76,10 +85,7 @@ export function KPICards({ stats, onKPIClick }: KPICardsProps) {
     },
     { 
       label: 'Lost', 
-      currencyValue: stats.lostValue, 
       displayValue: stats.lostCount,
-      isCurrency: true,
-      showCount: true,
       Icon: XCircle, 
       color: 'text-destructive', 
       bgColor: 'bg-destructive/10', 
@@ -87,10 +93,7 @@ export function KPICards({ stats, onKPIClick }: KPICardsProps) {
     },
     { 
       label: 'Regretted', 
-      currencyValue: stats.regrettedValue, 
       displayValue: stats.regrettedCount,
-      isCurrency: true,
-      showCount: true,
       Icon: ThumbsDown, 
       color: 'text-muted-foreground', 
       bgColor: 'bg-muted', 
@@ -98,84 +101,71 @@ export function KPICards({ stats, onKPIClick }: KPICardsProps) {
     },
     { 
       label: 'Working', 
-      currencyValue: stats.workingValue, 
       displayValue: stats.workingCount,
-      isCurrency: true,
-      showCount: true,
-      Icon: Activity, 
+      Icon: Zap, 
       color: 'text-warning', 
       bgColor: 'bg-warning/10', 
       type: 'working'
     },
     { 
       label: 'To Start', 
-      currencyValue: stats.toStartValue, 
       displayValue: stats.toStartCount,
-      isCurrency: true,
-      showCount: true,
-      Icon: PlayCircle, 
-      color: 'text-info', 
-      bgColor: 'bg-info/10', 
+      Icon: Play, 
+      color: 'text-pending', 
+      bgColor: 'bg-pending/10', 
       type: 'tostart'
     },
     { 
       label: 'Ongoing', 
-      currencyValue: stats.ongoingValue, 
       displayValue: stats.ongoingCount,
-      isCurrency: true,
-      showCount: true,
-      Icon: FileCheck, 
-      color: 'text-pending', 
-      bgColor: 'bg-pending/10', 
+      Icon: CheckCircle, 
+      color: 'text-info', 
+      bgColor: 'bg-info/10', 
       type: 'ongoing'
     },
     { 
       label: 'Submission Near', 
       displayValue: stats.submissionNearCount,
-      Icon: Clock, 
+      Icon: AlertTriangle, 
       color: 'text-destructive', 
       bgColor: 'bg-destructive/10', 
-      type: 'submissionnear'
+      type: 'submission'
     },
   ];
 
   return (
     <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
-      {kpis.map((kpi, index) => (
-        <Card 
-          key={kpi.label} 
-          className={`p-3 transition-all duration-300 hover:-translate-y-1 animate-fade-in ${onKPIClick ? 'cursor-pointer hover:shadow-lg hover:ring-2 hover:ring-primary/20' : ''}`}
-          style={{ animationDelay: `${index * 50}ms` }}
-          onClick={() => onKPIClick?.(kpi.type)}
-        >
-          <div className="flex flex-col items-center text-center gap-2">
-            <div className={`p-2 rounded-lg ${kpi.bgColor}`}>
-              <div className={`h-4 w-4 flex items-center justify-center ${kpi.color}`}>
-                <kpi.Icon />
+      {kpis.map((kpi, index) => {
+        const isActive = activeKPI === kpi.type;
+        return (
+          <Card 
+            key={kpi.label} 
+            className={`p-3 transition-all duration-300 hover:-translate-y-1 animate-fade-in cursor-pointer hover:shadow-lg ${
+              isActive ? 'ring-2 ring-primary shadow-lg scale-[1.02]' : 'hover:ring-2 hover:ring-primary/20'
+            }`}
+            style={{ animationDelay: `${index * 50}ms` }}
+            onClick={() => onKPIClick?.(kpi.type)}
+          >
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className={`p-2 rounded-lg ${kpi.bgColor}`}>
+                <div className={`h-4 w-4 flex items-center justify-center ${kpi.color}`}>
+                  <kpi.Icon />
+                </div>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{kpi.label}</p>
+                <p className={`text-sm font-bold ${kpi.color}`}>
+                  {kpi.isCurrency ? (
+                    <CurrencyDisplay value={kpi.currencyValue!} />
+                  ) : (
+                    kpi.displayValue
+                  )}
+                </p>
               </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs text-muted-foreground truncate">{kpi.label}</p>
-              <p className={`text-sm font-bold ${kpi.color}`}>
-                {kpi.isCurrency ? (
-                  kpi.showCount ? (
-                    <span className="flex flex-col items-center">
-                      <span>{kpi.displayValue}</span>
-                      <span className="text-xs opacity-80">
-                        <CurrencyDisplay value={kpi.currencyValue!} />
-                      </span>
-                    </span>
-                  ) : (
-                    <CurrencyDisplay value={kpi.currencyValue!} />
-                  )
-                ) : (
-                  kpi.displayValue
-                )}
-              </p>
-            </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        );
+      })}
     </div>
   );
 }
