@@ -9,7 +9,6 @@ interface AtRiskWidgetProps {
 }
 
 export function AtRiskWidget({ data, onSelectTender }: AtRiskWidgetProps) {
-  // Data is already filtered and sorted from dataCollection service
   const atRiskItems = data.slice(0, 8);
 
   const getDaysUntilDeadline = (rfpDate: string | null): number => {
@@ -26,13 +25,13 @@ export function AtRiskWidget({ data, onSelectTender }: AtRiskWidgetProps) {
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <Clock className="h-5 w-5 text-destructive" />
-          Submission Near
+          Submission Within a Week
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {atRiskItems.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No tenders with upcoming deadlines
+            No tenders due within 7 days
           </p>
         ) : (
           atRiskItems.map((tender) => {
@@ -49,26 +48,27 @@ export function AtRiskWidget({ data, onSelectTender }: AtRiskWidgetProps) {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{tender.client}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {tender.lead || 'Unassigned'}
-                    </p>
+                    <p className="font-medium text-sm truncate">{tender.tenderName || tender.client}</p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span>{tender.client}</span>
+                      <span>•</span>
+                      <span>{tender.lead || 'Unassigned'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {isUrgent && <AlertTriangle className="h-4 w-4 text-destructive" />}
-                    <Badge 
-                      variant={isUrgent ? 'destructive' : 'secondary'}
-                      className="text-xs whitespace-nowrap"
-                    >
-                      {daysLeft <= 0 ? 'Due' : `${daysLeft}d left`}
-                    </Badge>
+                  <div className="flex items-center gap-1">
+                    {isUrgent ? (
+                      <Badge variant="destructive" className="text-xs gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        {daysLeft <= 0 ? 'Due' : `${daysLeft}d left`}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs gap-1">
+                        <Clock className="h-3 w-3" />
+                        {daysLeft}d left
+                      </Badge>
+                    )}
                   </div>
                 </div>
-                {tender.refNo && (
-                  <p className="text-xs text-muted-foreground mt-1 font-mono">
-                    {tender.refNo}
-                  </p>
-                )}
               </div>
             );
           })
