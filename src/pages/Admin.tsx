@@ -18,6 +18,7 @@ import {
   Crown,
   Clock,
   Table2,
+  Building2,
 } from 'lucide-react';
 import { calculateDataHealth } from '@/data/opportunityData';
 import { useData } from '@/contexts/DataContext';
@@ -34,6 +35,7 @@ import AdminSettings from '@/components/Admin/AdminSettings';
 import ApprovalLogsPanel from '@/components/Admin/ApprovalLogsPanel';
 import UserRolesPanel from '@/components/Admin/UserRolesPanel';
 import DataMappingPanel from '@/components/Admin/DataMappingPanel';
+import VendorManagement from '@/components/Admin/VendorManagement';
 import aedSymbol from '@/assets/aed-symbol.png';
 
 const Admin = () => {
@@ -142,7 +144,7 @@ const Admin = () => {
       </div>
 
       <Tabs defaultValue="gsheets">
-        <TabsList className="grid grid-cols-5 md:grid-cols-11 w-full">
+        <TabsList className="grid grid-cols-6 md:grid-cols-12 w-full">
           <TabsTrigger value="gsheets" className="gap-2">
             <Sheet className="h-4 w-4" />
             <span className="hidden md:inline">Sheets</span>
@@ -154,6 +156,10 @@ const Admin = () => {
           <TabsTrigger value="sharepoint" className="gap-2">
             <CloudUpload className="h-4 w-4" />
             <span className="hidden md:inline">SharePoint</span>
+          </TabsTrigger>
+          <TabsTrigger value="vendors" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            <span className="hidden md:inline">Vendors</span>
           </TabsTrigger>
           <TabsTrigger value="data" className="gap-2">
             <FileStack className="h-4 w-4" />
@@ -203,6 +209,10 @@ const Admin = () => {
 
         <TabsContent value="sharepoint" className="mt-4">
           <SharePointSyncPanel />
+        </TabsContent>
+
+        <TabsContent value="vendors" className="mt-4">
+          <VendorManagement />
         </TabsContent>
 
         <TabsContent value="data" className="mt-4">

@@ -15,6 +15,7 @@ import Opportunities from "./pages/Opportunities";
 import Tenders from "./pages/Tenders";
 import Clients from "./pages/Clients";
 import Analytics from "./pages/Analytics";
+import Vendors from "./pages/Vendors";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -44,6 +45,7 @@ const App = () => (
                             <Route path="/tenders" element={<Tenders />} />
                             <Route path="/clients" element={<Clients />} />
                             <Route path="/analytics" element={<Analytics />} />
+                            <Route path="/vendors" element={<Vendors />} />
                             <Route path="/admin" element={<Admin />} />
                             
                             {/* Status-based routes */}

@@ -46,6 +46,7 @@ const mainNavItems = [
   { title: "All Tenders", url: "/opportunities", icon: FileText },
   { title: "Tenders", url: "/tenders", icon: FileSpreadsheet },
   { title: "Clients", url: "/clients", icon: Building2 },
+  { title: "Vendors", url: "/vendors", icon: Users },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
 ];
 
