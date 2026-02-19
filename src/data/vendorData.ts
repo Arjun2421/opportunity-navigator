@@ -355,7 +355,7 @@ export function deleteVendor(id: string) {
   saveVendors(vendors);
 }
 
-// Full-text search across ALL vendor fields
+// Full-text search across ALL vendor fields including agreement docs
 export function searchVendors(vendors: VendorData[], query: string): VendorData[] {
   if (!query.trim()) return vendors;
   const q = query.toLowerCase();
@@ -366,6 +366,7 @@ export function searchVendors(vendors: VendorData[], query: string): VendorData[
       v.companySize,
       v.focusArea,
       v.agreementStatus,
+      v.agreementDocuments,
       v.contactPerson,
       ...v.primaryIndustries,
       ...v.confirmedServices,
