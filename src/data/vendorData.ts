@@ -355,30 +355,50 @@ export function deleteVendor(id: string) {
   saveVendors(vendors);
 }
 
-// Full-text search across ALL vendor fields including agreement docs
+// Get all searchable fields as individual items for relevance scoring
+function getSearchableFields(v: VendorData): string[] {
+  return [
+    v.companyName,
+    v.companySize,
+    v.focusArea,
+    v.agreementStatus,
+    v.agreementDocuments,
+    v.contactPerson,
+    ...v.primaryIndustries,
+    ...v.confirmedServices,
+    ...v.confirmedTechStack,
+    ...v.nonSpecializedTechStack,
+    ...v.sampleProjects,
+    ...v.certifications,
+    ...v.partners,
+    ...v.sources,
+    ...v.emails,
+  ].filter(Boolean);
+}
+
+// Character-level search: every single character/substring in the query is matched
 export function searchVendors(vendors: VendorData[], query: string): VendorData[] {
   if (!query.trim()) return vendors;
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
 
   return vendors.filter(v => {
-    const searchable = [
-      v.companyName,
-      v.companySize,
-      v.focusArea,
-      v.agreementStatus,
-      v.agreementDocuments,
-      v.contactPerson,
-      ...v.primaryIndustries,
-      ...v.confirmedServices,
-      ...v.confirmedTechStack,
-      ...v.nonSpecializedTechStack,
-      ...v.sampleProjects,
-      ...v.certifications,
-      ...v.partners,
-      ...v.sources,
-      ...v.emails,
-    ].join(' ').toLowerCase();
-
-    return q.split(/\s+/).every(term => searchable.includes(term));
+    const searchable = getSearchableFields(v).join(' ').toLowerCase();
+    // Match every term (space-separated), each term matched as substring
+    return q.split(/\s+/).filter(Boolean).every(term => searchable.includes(term));
   });
+}
+
+// Returns the number of individual fields that match any search term
+export function getVendorMatchCount(vendor: VendorData, query: string): number {
+  if (!query.trim()) return 0;
+  const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const fields = getSearchableFields(vendor);
+  let matches = 0;
+  fields.forEach(field => {
+    const lower = field.toLowerCase();
+    if (terms.some(term => lower.includes(term))) {
+      matches++;
+    }
+  });
+  return matches;
 }
