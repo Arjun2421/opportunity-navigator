@@ -6,14 +6,11 @@ import { AtRiskWidget } from '@/components/Dashboard/AtRiskWidget';
 import { ClientLeaderboard } from '@/components/Dashboard/ClientLeaderboard';
 import { ExportButton } from '@/components/Dashboard/ExportButton';
 import { AdvancedFilters, FilterState, defaultFilters, applyFilters } from '@/components/Dashboard/AdvancedFilters';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { TenderDetailSheet } from '@/components/Dashboard/TenderDetailSheet';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, AlertCircle } from 'lucide-react';
 import { TenderData, calculateKPIStats, calculateFunnelData, getClientData, getSubmissionNearTenders } from '@/services/dataCollection';
 import { useData } from '@/contexts/DataContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -27,17 +24,11 @@ const KPI_TO_STATUSES: Record<KPIType, string[]> = {
   working: ['WORKING'],
   tostart: ['TO START'],
   ongoing: ['ONGOING'],
-  submission: [], // special handling
+  submission: [],
 };
 
 const Dashboard = () => {
-  const { 
-    tenders, 
-    isLoading, 
-    error, 
-    refreshData 
-  } = useData();
-  const { formatCurrency } = useCurrency();
+  const { tenders, isLoading, error, refreshData } = useData();
   const [selectedTender, setSelectedTender] = useState<TenderData | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
@@ -51,7 +42,6 @@ const Dashboard = () => {
 
   const handleKPIClick = useCallback((kpiType: KPIType) => {
     if (activeKPI === kpiType) {
-      // Deselect - clear KPI filter
       setActiveKPI(null);
       setFilters(prev => ({ ...prev, statuses: [], showSubmissionNear: false }));
     } else {
@@ -94,10 +84,7 @@ const Dashboard = () => {
     setActiveKPI(null);
   }, []);
 
-  // Apply filters to get filtered data
   const filteredTenders = useMemo(() => applyFilters(tenders, filters), [tenders, filters]);
-
-  // Recalculate derived data from filtered tenders
   const kpiStats = useMemo(() => calculateKPIStats(filteredTenders), [filteredTenders]);
   const funnelData = useMemo(() => calculateFunnelData(filteredTenders), [filteredTenders]);
   const clientData = useMemo(() => getClientData(filteredTenders), [filteredTenders]);
@@ -138,7 +125,6 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
@@ -147,12 +133,7 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh Data
           </Button>
@@ -160,10 +141,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <KPICards stats={kpiStats} activeKPI={activeKPI} onKPIClick={handleKPIClick} />
 
-      {/* Filters */}
       <AdvancedFilters
         data={tenders}
         filters={filters}
@@ -171,87 +150,15 @@ const Dashboard = () => {
         onClearFilters={handleClearFilters}
       />
 
-      {/* Tenders Table */}
       <OpportunitiesTable data={filteredTenders} onSelectTender={setSelectedTender} />
 
-      {/* Secondary Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <FunnelChart data={funnelData} onStageClick={handleStageClick} />
         <AtRiskWidget data={submissionNearTenders} onSelectTender={setSelectedTender} />
         <ClientLeaderboard data={clientData} onClientClick={handleClientClick} />
       </div>
 
-      {/* Detail Sheet */}
-      <Sheet open={!!selectedTender} onOpenChange={() => setSelectedTender(null)}>
-        <SheetContent className="w-[450px] sm:max-w-[450px] overflow-auto">
-          {selectedTender && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="text-left">{selectedTender.refNo}</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6 space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg">{selectedTender.tenderName || 'Unnamed Tender'}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedTender.client}</p>
-                </div>
-                
-                <div className="flex gap-2 flex-wrap">
-                  <Badge>{selectedTender.avenirStatus}</Badge>
-                  {selectedTender.tenderResult && (
-                    <Badge variant="outline">{selectedTender.tenderResult}</Badge>
-                  )}
-                  {selectedTender.isSubmissionNear && (
-                    <Badge variant="destructive">Submission Near</Badge>
-                  )}
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Type</p>
-                    <p className="font-semibold">{selectedTender.tenderType || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Value</p>
-                    <p className="font-semibold">
-                      {selectedTender.value > 0 ? formatCurrency(selectedTender.value) : '—'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">RFP Received</p>
-                    <p className="font-semibold">{selectedTender.rfpReceivedDate || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Lead</p>
-                    <p className="font-semibold">{selectedTender.lead || 'Unassigned'}</p>
-                  </div>
-                </div>
-
-                {(selectedTender.tenderStatusRemark || selectedTender.remarksReason) && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      {selectedTender.tenderStatusRemark && (
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Tender Status Remark</p>
-                          <p className="text-sm bg-muted/50 p-2 rounded">{selectedTender.tenderStatusRemark}</p>
-                        </div>
-                      )}
-                      {selectedTender.remarksReason && (
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Remarks/Reason</p>
-                          <p className="text-sm bg-muted/50 p-2 rounded">{selectedTender.remarksReason}</p>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      <TenderDetailSheet tender={selectedTender} onClose={() => setSelectedTender(null)} />
     </div>
   );
 };
