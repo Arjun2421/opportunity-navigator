@@ -17,6 +17,7 @@ import Clients from "./pages/Clients";
 import Analytics from "./pages/Analytics";
 import Vendors from "./pages/Vendors";
 import Admin from "./pages/Admin";
+import TenderUpdates from "./pages/TenderUpdates";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -46,6 +47,7 @@ const App = () => (
                             <Route path="/clients" element={<Clients />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/vendors" element={<Vendors />} />
+                            <Route path="/tender-updates" element={<TenderUpdates />} />
                             <Route path="/admin" element={<Admin />} />
                             
                             {/* Status-based routes */}

@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   CloudUpload,
+  GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -48,6 +49,7 @@ const mainNavItems = [
   { title: "Clients", url: "/clients", icon: Building2 },
   { title: "Vendors", url: "/vendors", icon: Users },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Tender Updates", url: "/tender-updates", icon: GitBranch },
 ];
 
 const statusNavItems = [
