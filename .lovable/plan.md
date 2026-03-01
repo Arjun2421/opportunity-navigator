@@ -1,153 +1,157 @@
-the search option in vendor page is still not good enough each and every letter should be searchable  
-  
-Site-Wide Improvements Plan
 
-## Summary
 
-Apply a consistent set of enhancements across **all 6 pages** (Dashboard, Opportunities, Tenders, Clients, Analytics, Vendors) plus global improvements to the sidebar, layout, and shared components.
+# Tender Updates Tracker - New Dashboard Page
 
----
+## Overview
 
-## 1. Vendor Comparison Mode
-
-**Page:** Vendors
-
-- Add a checkbox on each vendor card to select up to 3 vendors
-- A floating "Compare (N)" button appears when 2+ selected
-- Opens a side-by-side comparison dialog with columns for each vendor showing: Tech Stack, Services, Certifications, Industries, Partners, Company Size, Agreement Status
+Add a new **"Tender Updates"** page to the existing dashboard that tracks subcontractor and client timeline events per tender. The page links to existing tenders from `DataContext`, uses `localStorage` for update persistence (matching existing patterns), and includes list/timeline views, an interactive tree/graph, and export to Excel (.xlsx) and Word (.docx).
 
 ---
 
-## 2. Smart Search Tags (Quick Filters)
+## Data Model
 
-**Pages:** Vendors, Clients, Tenders
+### New interfaces (in a new service file)
 
-- Below the search bar, show clickable chip/tags for the most common search terms extracted from the data
-- **Vendors:** "Python", "AWS", "ISO 27001", "Cybersecurity", "Healthcare"
-- **Clients:** Top 5 client names as quick-select chips
-- **Tenders:** Status chips ("WORKING", "AWARDED", "SUBMITTED") already exist but add quick keyword chips for top leads/clients
-- Clicking a chip populates the search bar or toggles a filter
+```text
+TenderUpdate {
+  id: string (uuid)
+  opportunityId: string (maps to TenderData.id)
+  type: "subcontractor" | "client"
+  subType: "contacted" | "response" | "note" | "submission" | "extension" | "clarification"
+  actor: string
+  date: string (ISO8601)
+  dueDate: string | null
+  details: string
+  attachments: string[]
+  createdBy: string
+  createdAt: string (ISO8601)
+}
+```
 
----
+Updates are stored in `localStorage` under key `tenderUpdates` and managed via `getTenderUpdates()`, `addTenderUpdate()`, `deleteTenderUpdate()` helper functions -- same pattern as `vendorData.ts`.
 
-## 3. Sort Options
-
-**Pages:** Vendors, Clients, Tenders
-
-- Add a sort dropdown next to the search bar
-- **Vendors:** Sort by name (A-Z), company size, number of certifications, tech stack breadth
-- **Clients:** Sort by name, total value, opportunity count, win rate
-- **Tenders:** Sort by date received, value, status, lead name
-- Currently no pages have any sort capability
-
----
-
-## 4. Grid/List View Toggle
-
-**Pages:** Vendors, Clients
-
-- Add a toggle button (grid icon / list icon) to switch between the card view and a compact table/list view
-- Remembers preference in state
+Tenders are referenced from the existing `DataContext` (tender name + ref number + group are already available).
 
 ---
 
-## 5. Export to Excel
+## Page Layout & Components
 
-**Pages:** Vendors, Clients, Tenders, Analytics
+### 1. Top Filter Bar
+- **Group filter** (multi-select from existing `groupClassification` values)
+- **Search** by tender name / ref number
+- **Status filter** (from existing `avenirStatus`)
+- **Owner/Lead filter**
+- **Toggle: "Show Only Upcoming Due Dates"**
 
-- Dashboard already has an Export button; extend to all other pages
-- **Vendors:** Export filtered vendor list with all fields to XLSX
-- **Clients:** Export client summary table
-- **Tenders:** Export the filtered tenders table
-- **Analytics:** Export chart data as XLSX
-- Uses the already-installed `xlsx` library
+### 2. Split-Pane Layout (using existing `react-resizable-panels`)
 
----
+**Left Pane: Opportunity Table**
+- Columns: Group, Tender Name, Ref No, Lead, Next Due Date (calculated pill -- red/orange/green), Status
+- Row click selects the tender and loads its timeline in the right pane
+- Multi-select checkboxes for bulk export
 
-## 6. Relevance Score on Search
+**Right Pane: Dual Timeline**
+- Two parallel lanes per selected tender:
+  - **Lane A -- Subcontractor Updates**: contacted, response, note events in chronological order
+  - **Lane B -- Client Events**: submission due dates, extensions, clarifications
+- Each event is a card showing date, sub_type badge, actor, short details (expandable)
+- "Add Update" button opens a modal form (type, sub_type, actor, date, due_date, details)
 
-**Pages:** Vendors, Clients
+### 3. Upcoming Due Dates Widget
+- Mini calendar-style list showing due dates across filtered tenders (next 30/60/90 days toggle)
+- Clicking an item selects that tender row
 
-- When a search query is active, show a small "N matches" badge on each card indicating how many fields matched
-- Helps users quickly identify the best-fit result
+### 4. Full-Screen Interactive Graph View
+- Button: "Open Fullscreen Tree"
+- Hierarchical tree: Group -> Opportunities -> Update events
+- Built with pure SVG/CSS (no heavy external lib needed for the scale of data here)
+- Pan/zoom via CSS transforms + mouse/wheel handlers
+- Node types with distinct colors: blue for subcontractor, green for client, orange border for pending due dates, red for overdue
+- Click node to open detail; double-click to zoom into that cluster
+- Search highlight + fit-to-screen button
+- Also offer a Mermaid text preview toggle (auto-generated flowchart string)
 
----
-
-## 7. Shared Tender Detail Sheet
-
-**Pages:** Dashboard, Opportunities
-
-- Extract the duplicated `<Sheet>` tender detail popup into a shared component `TenderDetailSheet.tsx`
-- Both Dashboard.tsx and Opportunities.tsx import it instead of duplicating code
-
----
-
-## 8. Analytics Page Upgrade
-
-**Page:** Analytics
-
-- Currently uses stale `opportunityData.ts` data instead of the live `tenders` feed from DataContext
-- Switch to use `tenders` data from `useData()` and the calculation functions from `dataCollection.ts`
-- Add interactive chart clicks (click a pie slice or bar to filter)
-- Add currency context support (currently hardcoded to `$`)
-
----
-
-## 9. Clients Page Upgrade
-
-**Page:** Clients
-
-- Currently uses stale `opportunities` (legacy format) with hardcoded `$` formatting
-- Switch to use currency context (`useCurrency()`) for proper AED/USD display
-- Add 3D card styling matching the Vendor directory aesthetic
-- Make client cards clickable to navigate to Dashboard filtered by that client
+### 5. Export
+- **Excel (.xlsx)**: Sheet 1 = Opportunities list, then one sheet per selected opportunity with its updates. Uses existing `xlsx` library.
+- **Word (.docx)**: Install `docx` package. Generates a document with cover page, per-opportunity sections including update tables. Mermaid SVG snapshot embedded as an image if feasible, otherwise a text representation.
 
 ---
 
-## 10. Tenders Page Upgrade
+## Files to Create
 
-**Page:** Tenders
+| File | Purpose |
+|------|---------|
+| `src/data/tenderUpdatesData.ts` | TenderUpdate interface, localStorage CRUD, seed data, due date calculations |
+| `src/pages/TenderUpdates.tsx` | Main page with filter bar, split pane, timeline, graph toggle |
+| `src/components/TenderUpdates/UpdateTimeline.tsx` | Dual-lane timeline component |
+| `src/components/TenderUpdates/AddUpdateModal.tsx` | Form dialog to add/edit updates |
+| `src/components/TenderUpdates/InteractiveGraph.tsx` | Full-screen zoomable tree/graph |
+| `src/components/TenderUpdates/DueDatesWidget.tsx` | Upcoming due dates mini-widget |
+| `src/components/TenderUpdates/MermaidPreview.tsx` | Auto-generated Mermaid text preview |
 
-- Currently uses stale `opportunities` (legacy format)
-- Switch to use `tenders` from `useData()` directly
-- Add column sorting (click headers to sort asc/desc)
-- Add export button
-- Use currency context instead of hardcoded `$`
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/App.tsx` | Add `/tender-updates` route |
+| `src/components/AppSidebar.tsx` | Add "Tender Updates" nav item with a `GitBranch` icon |
+| `package.json` | Add `docx` dependency for Word export |
 
 ---
 
-## Technical Details
+## Seed Data
 
-### Files to Create
+Pre-populate 3-4 sample updates linked to existing tenders so the page is not empty on first load. These will reference actual tender IDs from the Google Sheets data once loaded, with fallback sample IDs.
 
+---
 
-| File                                             | Purpose                    |
-| ------------------------------------------------ | -------------------------- |
-| `src/components/Dashboard/TenderDetailSheet.tsx` | Shared tender detail popup |
-| `src/components/Vendors/VendorCompareDialog.tsx` | Side-by-side comparison    |
+## Technical Notes
 
+- **No backend needed**: All updates stored in `localStorage`, consistent with existing vendor/approval patterns.
+- **Existing dependencies reused**: `xlsx` for Excel, `react-resizable-panels` for split pane, `recharts` colors for consistency, `lucide-react` icons.
+- **New dependency**: `docx` (npm package) for Word document generation.
+- **Role-based access**: Only master/admin/proposal_head can add updates; basic users get read-only view (uses existing `useAuth()`).
+- **Interactive graph**: Built with vanilla React + SVG rather than Cytoscape/D3 to avoid heavy dependencies. Uses CSS `transform` for pan/zoom.
 
-### Files to Modify
+---
 
+## Sequencing
 
-| File                          | Changes                                                                                                 |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `src/pages/Vendors.tsx`       | Add comparison mode, sort dropdown, grid/list toggle, quick-filter tags, export button, relevance score |
-| `src/pages/Clients.tsx`       | 3D cards, sort dropdown, grid/list toggle, export, currency context, click-to-filter                    |
-| `src/pages/Tenders.tsx`       | Switch to TenderData, column sorting, export button, currency context                                   |
-| `src/pages/Analytics.tsx`     | Switch to live tenders data, currency context, interactive chart clicks                                 |
-| `src/pages/Dashboard.tsx`     | Use shared TenderDetailSheet                                                                            |
-| `src/pages/Opportunities.tsx` | Use shared TenderDetailSheet                                                                            |
-| `src/data/vendorData.ts`      | Add relevance scoring to `searchVendors()`                                                              |
+1. Create data layer (`tenderUpdatesData.ts`) with interfaces, CRUD, seed data, and due-date calculations
+2. Build the timeline and modal components
+3. Build the main page with filters, split pane, and timeline integration
+4. Build the interactive graph and Mermaid preview
+5. Add export (xlsx + docx)
+6. Wire up routing and sidebar navigation
 
+---
 
-### Dependencies
+## Codex Prompt (for replicating this in another project)
 
-No new dependencies needed. `xlsx` and `recharts` are already installed.
+Below is a self-contained prompt you can give to Codex or another AI to replicate this feature:
 
-### Sequencing
+```text
+Create a "Tender Updates Tracker" page in an existing React + TypeScript + Tailwind + Vite dashboard app. The app already has a TenderData model with fields: id, refNo, tenderName, client, avenirStatus, groupClassification, lead, value. Tenders are fetched via a DataContext (useData() hook).
 
-1. Create shared `TenderDetailSheet` first (unblocks Dashboard + Opportunities cleanup)
-2. Fix data source on Tenders, Clients, Analytics pages (switch from legacy `opportunities` to `tenders`)
-3. Add sort/export/view-toggle to each page in parallel
-4. Add vendor comparison mode last (most complex)
+Requirements:
+1. DATA MODEL: Create a TenderUpdate interface with fields: id (uuid), opportunityId (links to TenderData.id), type ("subcontractor" | "client"), subType ("contacted" | "response" | "note" | "submission" | "extension" | "clarification"), actor (string), date (ISO8601), dueDate (ISO8601 | null), details (string), attachments (string[]), createdBy (string), createdAt (ISO8601). Store in localStorage with CRUD helpers.
+
+2. PAGE LAYOUT: Split-pane layout (react-resizable-panels). Left pane = filterable tender table (group, search, status, lead filters + "upcoming due dates only" toggle). Right pane = dual-lane timeline for the selected tender (Lane A: Subcontractor updates, Lane B: Client events). Each event is an expandable card.
+
+3. ADD/EDIT MODAL: Dialog form to create updates with type, subType, actor, date, dueDate, details fields.
+
+4. UPCOMING DUE DATES WIDGET: Shows due dates across filtered tenders for next 30/60/90 days. Clicking selects the tender.
+
+5. FULL-SCREEN INTERACTIVE GRAPH: Hierarchical tree (Group -> Tender -> Updates) with pan/zoom (CSS transforms), color-coded nodes (blue=subcontractor, green=client, orange=pending, red=overdue), click-to-detail, double-click-to-zoom, search highlight, fit-to-screen. Also offer a Mermaid text preview toggle.
+
+6. EXPORT: Excel (.xlsx via SheetJS) with Opportunities sheet + per-tender update sheets. Word (.docx via docx npm package) with cover page, per-tender sections, and update tables.
+
+7. NAVIGATION: Add route /tender-updates and sidebar link with GitBranch icon.
+
+8. ACCESS CONTROL: Only admin/master roles can add updates; basic users are read-only.
+
+9. SEED DATA: Pre-populate 3-4 sample updates so the page works out of the box.
+
+Use existing UI components (shadcn/ui), Tailwind classes, and project patterns (localStorage persistence, useCurrency for values, useAuth for roles).
+```
+
