@@ -15,9 +15,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
+type KPIType = 'total' | 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
 
 const KPI_TO_STATUSES: Record<KPIType, string[]> = {
+  total: [],
   active: ['WORKING', 'ONGOING', 'SUBMITTED', 'AWARDED'],
   awarded: ['AWARDED'],
   lost: ['LOST'],
@@ -26,6 +27,7 @@ const KPI_TO_STATUSES: Record<KPIType, string[]> = {
   tostart: ['TO START'],
   ongoing: ['ONGOING'],
   submission: [],
+};
 };
 
 const Dashboard = () => {
