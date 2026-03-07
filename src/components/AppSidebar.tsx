@@ -70,6 +70,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { tenders } = useData();
   
   const [statusOpen, setStatusOpen] = useState(
     location.pathname.startsWith("/status")
