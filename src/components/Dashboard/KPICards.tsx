@@ -59,6 +59,14 @@ export function KPICards({ stats, activeKPI, onKPIClick }: KPICardsProps) {
     type: KPIType;
   }> = [
     { 
+      label: 'Total Tenders', 
+      displayValue: stats.totalTenders,
+      Icon: FileText, 
+      color: 'text-foreground', 
+      bgColor: 'bg-foreground/10', 
+      type: 'total'
+    },
+    { 
       label: 'Active Tenders', 
       displayValue: stats.activeTenders,
       Icon: Target, 
