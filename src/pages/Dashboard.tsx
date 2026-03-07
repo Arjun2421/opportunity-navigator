@@ -13,6 +13,7 @@ import { TenderData, calculateKPIStats, calculateFunnelData, getClientData, getS
 import { useData } from '@/contexts/DataContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
 
@@ -126,11 +127,16 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {filteredTenders.length} of {tenders.length} tenders
-          </p>
+          <Badge variant="secondary" className="text-base font-bold px-3 py-1">
+            {tenders.length} Tenders
+          </Badge>
+          {filteredTenders.length !== tenders.length && (
+            <Badge variant="outline" className="text-sm px-2 py-0.5">
+              {filteredTenders.length} filtered
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
@@ -138,6 +144,34 @@ const Dashboard = () => {
             Refresh Data
           </Button>
           <ExportButton data={filteredTenders} filename="tenders" />
+        </div>
+      </div>
+
+      {/* Floating Summary Bar */}
+      <div className="flex items-center gap-4 px-4 py-2.5 rounded-lg bg-muted/50 border border-border text-sm">
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Total:</span>
+          <span className="font-bold text-foreground">{tenders.length}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Filtered:</span>
+          <span className="font-bold text-foreground">{filteredTenders.length}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Active:</span>
+          <span className="font-bold text-primary">{kpiStats.activeTenders}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Awarded:</span>
+          <span className="font-bold text-success">{kpiStats.awardedCount}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Lost:</span>
+          <span className="font-bold text-destructive">{kpiStats.lostCount}</span>
         </div>
       </div>
 
