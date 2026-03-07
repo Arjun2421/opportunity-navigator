@@ -4,7 +4,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import aedSymbol from '@/assets/aed-symbol.png';
 import { KPIStats } from '@/services/dataCollection';
 
-type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
+type KPIType = 'total' | 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
 
 interface KPICardsProps {
   stats: KPIStats;
