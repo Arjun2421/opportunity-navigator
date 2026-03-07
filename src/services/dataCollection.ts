@@ -307,6 +307,7 @@ function generateMockTenders(): TenderData[] {
 // Calculate KPI statistics from tender data
 export function calculateKPIStats(data: TenderData[]): KPIStats {
   const stats: KPIStats = {
+    totalTenders: data.length,
     activeTenders: 0,
     totalActiveValue: 0,
     awardedCount: 0,

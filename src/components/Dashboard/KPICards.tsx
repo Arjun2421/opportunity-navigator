@@ -142,7 +142,7 @@ export function KPICards({ stats, activeKPI, onKPIClick }: KPICardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3">
       {kpis.map((kpi, index) => {
         const isActive = activeKPI === kpi.type;
         return (
