@@ -126,11 +126,16 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {filteredTenders.length} of {tenders.length} tenders
-          </p>
+          <Badge variant="secondary" className="text-base font-bold px-3 py-1">
+            {tenders.length} Tenders
+          </Badge>
+          {filteredTenders.length !== tenders.length && (
+            <Badge variant="outline" className="text-sm px-2 py-0.5">
+              {filteredTenders.length} filtered
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
