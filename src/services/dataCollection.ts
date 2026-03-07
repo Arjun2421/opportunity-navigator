@@ -21,6 +21,7 @@ export interface TenderData {
 }
 
 export interface KPIStats {
+  totalTenders: number;           // Grand total regardless of status
   activeTenders: number;        // In Progress + Submitted + Awarded
   totalActiveValue: number;     // Sum of value for Awarded
   awardedCount: number;
