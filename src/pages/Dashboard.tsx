@@ -13,6 +13,7 @@ import { TenderData, calculateKPIStats, calculateFunnelData, getClientData, getS
 import { useData } from '@/contexts/DataContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
 
