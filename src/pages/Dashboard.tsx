@@ -147,6 +147,34 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Floating Summary Bar */}
+      <div className="flex items-center gap-4 px-4 py-2.5 rounded-lg bg-muted/50 border border-border text-sm">
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Total:</span>
+          <span className="font-bold text-foreground">{tenders.length}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Filtered:</span>
+          <span className="font-bold text-foreground">{filteredTenders.length}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Active:</span>
+          <span className="font-bold text-primary">{kpiStats.activeTenders}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Awarded:</span>
+          <span className="font-bold text-success">{kpiStats.awardedCount}</span>
+        </div>
+        <div className="h-4 w-px bg-border" />
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Lost:</span>
+          <span className="font-bold text-destructive">{kpiStats.lostCount}</span>
+        </div>
+      </div>
+
       <KPICards stats={kpiStats} activeKPI={activeKPI} onKPIClick={handleKPIClick} />
 
       <AdvancedFilters

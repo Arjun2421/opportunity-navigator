@@ -106,9 +106,14 @@ export function AppSidebar() {
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url}>
+                     <NavLink to={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
+                      {item.title === "Dashboard" && !collapsed && tenders.length > 0 && (
+                        <Badge className="ml-auto text-[10px] px-1.5 bg-primary/10 text-primary border-primary/20">
+                          {tenders.length}
+                        </Badge>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
