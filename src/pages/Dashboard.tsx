@@ -28,7 +28,6 @@ const KPI_TO_STATUSES: Record<KPIType, string[]> = {
   ongoing: ['ONGOING'],
   submission: [],
 };
-};
 
 const Dashboard = () => {
   const { tenders, isLoading, error, refreshData } = useData();
