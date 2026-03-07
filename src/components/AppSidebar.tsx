@@ -22,6 +22,7 @@ import {
   GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useData } from "@/contexts/DataContext";
 import {
   Sidebar,
   SidebarContent,
