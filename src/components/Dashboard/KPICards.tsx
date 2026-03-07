@@ -1,4 +1,4 @@
-import { Target, Trophy, XCircle, Clock, ThumbsDown, Zap, Play, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Target, Trophy, XCircle, Clock, ThumbsDown, Zap, Play, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import aedSymbol from '@/assets/aed-symbol.png';
