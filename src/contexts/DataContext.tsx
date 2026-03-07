@@ -27,6 +27,7 @@ interface DataContextType {
 }
 
 const defaultKPIStats: KPIStats = {
+  totalTenders: 0,
   activeTenders: 0,
   totalActiveValue: 0,
   awardedCount: 0,

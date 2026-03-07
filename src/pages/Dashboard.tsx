@@ -15,9 +15,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
+type KPIType = 'total' | 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
 
 const KPI_TO_STATUSES: Record<KPIType, string[]> = {
+  total: [],
   active: ['WORKING', 'ONGOING', 'SUBMITTED', 'AWARDED'],
   awarded: ['AWARDED'],
   lost: ['LOST'],
@@ -98,8 +99,8 @@ const Dashboard = () => {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
-          {Array.from({ length: 9 }).map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3">
+          {Array.from({ length: 10 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
         </div>

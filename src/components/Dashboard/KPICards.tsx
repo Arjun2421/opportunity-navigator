@@ -1,10 +1,10 @@
-import { Target, Trophy, XCircle, Clock, ThumbsDown, Zap, Play, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Target, Trophy, XCircle, Clock, ThumbsDown, Zap, Play, CheckCircle, AlertTriangle, FileText } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import aedSymbol from '@/assets/aed-symbol.png';
 import { KPIStats } from '@/services/dataCollection';
 
-type KPIType = 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
+type KPIType = 'total' | 'active' | 'awarded' | 'lost' | 'regretted' | 'working' | 'tostart' | 'ongoing' | 'submission';
 
 interface KPICardsProps {
   stats: KPIStats;
@@ -58,6 +58,14 @@ export function KPICards({ stats, activeKPI, onKPIClick }: KPICardsProps) {
     bgColor: string;
     type: KPIType;
   }> = [
+    { 
+      label: 'Total Tenders', 
+      displayValue: stats.totalTenders,
+      Icon: FileText, 
+      color: 'text-foreground', 
+      bgColor: 'bg-foreground/10', 
+      type: 'total'
+    },
     { 
       label: 'Active Tenders', 
       displayValue: stats.activeTenders,
@@ -134,7 +142,7 @@ export function KPICards({ stats, activeKPI, onKPIClick }: KPICardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3">
       {kpis.map((kpi, index) => {
         const isActive = activeKPI === kpi.type;
         return (

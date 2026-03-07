@@ -21,6 +21,7 @@ export interface TenderData {
 }
 
 export interface KPIStats {
+  totalTenders: number;           // Grand total regardless of status
   activeTenders: number;        // In Progress + Submitted + Awarded
   totalActiveValue: number;     // Sum of value for Awarded
   awardedCount: number;
@@ -306,6 +307,7 @@ function generateMockTenders(): TenderData[] {
 // Calculate KPI statistics from tender data
 export function calculateKPIStats(data: TenderData[]): KPIStats {
   const stats: KPIStats = {
+    totalTenders: data.length,
     activeTenders: 0,
     totalActiveValue: 0,
     awardedCount: 0,
