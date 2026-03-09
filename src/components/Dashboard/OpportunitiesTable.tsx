@@ -32,6 +32,7 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
   const { getApprovalStatus, getApprovalState, approveAsProposalHead, approveAsSVP, revertApproval, refreshApprovals } = useApproval();
   const { isProposalHead, isSVP, isMaster, user } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleRefresh = () => {
     setIsRefreshing(true);
