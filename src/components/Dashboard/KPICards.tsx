@@ -142,13 +142,14 @@ export function KPICards({ stats, activeKPI, onKPIClick }: KPICardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3">
+    <div className="overflow-x-auto -mx-1 px-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3 min-w-0">
       {kpis.map((kpi, index) => {
         const isActive = activeKPI === kpi.type;
         return (
           <Card 
             key={kpi.label} 
-            className={`p-3 transition-all duration-300 hover:-translate-y-1 animate-fade-in cursor-pointer hover:shadow-lg ${
+            className={`p-2 sm:p-3 transition-all duration-300 hover:-translate-y-1 animate-fade-in cursor-pointer hover:shadow-lg ${
               isActive ? 'ring-2 ring-primary shadow-lg scale-[1.02]' : 'hover:ring-2 hover:ring-primary/20'
             }`}
             style={{ animationDelay: `${index * 50}ms` }}
