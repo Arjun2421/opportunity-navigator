@@ -237,12 +237,12 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyTrend}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(v) => fmtVal(v)} />
+                  <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis tickFormatter={(v) => fmtVal(v)} tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <Tooltip formatter={(v: number) => [fmtVal(v), 'Value']} />
                   <Area type="monotone" dataKey="value" stroke="hsl(217, 91%, 60%)" fill="hsl(217, 91%, 60%)" fillOpacity={0.2} />
                 </AreaChart>
