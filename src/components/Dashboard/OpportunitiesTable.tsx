@@ -83,15 +83,15 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
   return (
     <Card className="flex-1">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <CardTitle className="text-lg">Tenders</CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="relative">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-48 h-9" />
+              <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-full sm:w-48 h-9" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-36 h-9"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 {AVENIR_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
@@ -113,6 +113,30 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
         </div>
       </CardHeader>
       <CardContent className="p-0">
+        {isMobile ? (
+          <div className="max-h-[400px] overflow-auto scrollbar-thin divide-y divide-border">
+            {filteredData.slice(0, 50).map((tender) => (
+              <div
+                key={tender.id}
+                className="p-3 cursor-pointer hover:bg-muted/50 active:bg-muted/70 space-y-1.5"
+                onClick={() => onSelectTender?.(tender)}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-mono text-xs text-muted-foreground">{tender.refNo || '—'}</span>
+                  <Badge className={getStatusBadge(tender.avenirStatus)}>{tender.avenirStatus || '—'}</Badge>
+                </div>
+                <p className="text-sm font-medium truncate">{tender.client || '—'}</p>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{tender.lead || 'Unassigned'}</span>
+                  <span className="font-mono font-medium text-foreground">{tender.value > 0 ? formatCurrency(tender.value) : '—'}</span>
+                </div>
+                {tender.tenderResult && (
+                  <Badge className={`${getTenderResultBadge(tender.tenderResult)} text-xs`}>{tender.tenderResult}</Badge>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="max-h-[400px] overflow-auto scrollbar-thin">
           <Table>
             <TableHeader className="sticky top-0 bg-card z-10">
