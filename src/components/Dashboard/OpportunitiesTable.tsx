@@ -16,6 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OpportunitiesTableProps {
   data: TenderData[];
