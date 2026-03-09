@@ -72,7 +72,7 @@ const Admin = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
@@ -80,7 +80,7 @@ const Admin = () => {
           </h1>
           <p className="text-muted-foreground">Logged in as {user?.displayName} ({user?.role})</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           {/* Currency Toggle */}
           <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
             <span className="text-sm font-medium">$</span>
