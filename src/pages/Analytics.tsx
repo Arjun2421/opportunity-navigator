@@ -9,6 +9,7 @@ import {
 import { TrendingUp, Users, Building2, Target, Calendar, DollarSign, Download } from 'lucide-react';
 import { useData } from '@/contexts/DataContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import * as XLSX from 'xlsx';
 
 const COLORS = ['hsl(199, 89%, 48%)', 'hsl(38, 92%, 50%)', 'hsl(262, 83%, 58%)', 'hsl(142, 76%, 36%)', 'hsl(0, 84%, 60%)', 'hsl(220, 9%, 46%)'];
@@ -17,6 +18,7 @@ const Analytics = () => {
   const { tenders } = useData();
   const { formatCurrency, currency } = useCurrency();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const displayTenders = useMemo(() => {
     if (!activeFilter) return tenders;
@@ -142,7 +144,7 @@ const Analytics = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Analytics</h1>
           <p className="text-muted-foreground">
@@ -188,16 +190,16 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={stageData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value" onClick={handlePieClick} className="cursor-pointer">
+                  <Pie data={stageData} cx="50%" cy="50%" innerRadius={isMobile ? 40 : 60} outerRadius={isMobile ? 70 : 100} paddingAngle={2} dataKey="value" onClick={handlePieClick} className="cursor-pointer">
                     {stageData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend />
+                  {!isMobile && <Legend />}
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -211,12 +213,12 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={groupData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" tickFormatter={(v) => fmtVal(v)} />
-                  <YAxis type="category" dataKey="name" width={50} />
+                  <XAxis type="number" tickFormatter={(v) => fmtVal(v)} tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis type="category" dataKey="name" width={isMobile ? 35 : 50} tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <Tooltip formatter={(v: number) => [fmtVal(v), 'Value']} />
                   <Bar dataKey="value" fill="hsl(217, 91%, 60%)" radius={[0, 4, 4, 0]} onClick={handleBarClick} className="cursor-pointer" />
                 </BarChart>
@@ -235,12 +237,12 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={monthlyTrend}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="month" />
-                  <YAxis tickFormatter={(v) => fmtVal(v)} />
+                  <XAxis dataKey="month" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis tickFormatter={(v) => fmtVal(v)} tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <Tooltip formatter={(v: number) => [fmtVal(v), 'Value']} />
                   <Area type="monotone" dataKey="value" stroke="hsl(217, 91%, 60%)" fill="hsl(217, 91%, 60%)" fillOpacity={0.2} />
                 </AreaChart>
@@ -256,14 +258,14 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={leadPerformance}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
+                  <XAxis dataKey="name" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <Tooltip />
-                  <Legend />
+                  {!isMobile && <Legend />}
                   <Bar dataKey="won" name="Won" fill="hsl(142, 76%, 36%)" stackId="a" />
                   <Bar dataKey="lost" name="Lost" fill="hsl(0, 84%, 60%)" stackId="a" />
                 </BarChart>
@@ -281,12 +283,12 @@ const Analytics = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
+          <div className="h-[250px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={clientData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} />
-                <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} tick={{ fontSize: isMobile ? 10 : 12 }} />
+                <YAxis type="category" dataKey="name" width={isMobile ? 80 : 120} tick={{ fontSize: isMobile ? 9 : 11 }} />
                 <Tooltip formatter={(v: number) => [formatCurrency(v), 'Value']} />
                 <Bar dataKey="value" fill="hsl(142, 76%, 36%)" radius={[0, 4, 4, 0]} onClick={handleBarClick} className="cursor-pointer" />
               </BarChart>

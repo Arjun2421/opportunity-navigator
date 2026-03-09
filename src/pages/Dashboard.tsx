@@ -99,7 +99,7 @@ const Dashboard = () => {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
           {Array.from({ length: 10 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}
@@ -127,8 +127,8 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <Badge variant="secondary" className="text-base font-bold px-3 py-1">
             {tenders.length} Tenders
@@ -141,35 +141,35 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh Data
+            <RefreshCw className={`h-4 w-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh Data</span>
           </Button>
           <ExportButton data={filteredTenders} filename="tenders" />
         </div>
       </div>
 
       {/* Floating Summary Bar */}
-      <div className="flex items-center gap-4 px-4 py-2.5 rounded-lg bg-muted/50 border border-border text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-muted/50 border border-border text-sm">
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Total:</span>
           <span className="font-bold text-foreground">{tenders.length}</span>
         </div>
-        <div className="h-4 w-px bg-border" />
+        <div className="hidden sm:block h-4 w-px bg-border" />
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Filtered:</span>
           <span className="font-bold text-foreground">{filteredTenders.length}</span>
         </div>
-        <div className="h-4 w-px bg-border" />
+        <div className="hidden sm:block h-4 w-px bg-border" />
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Active:</span>
           <span className="font-bold text-primary">{kpiStats.activeTenders}</span>
         </div>
-        <div className="h-4 w-px bg-border" />
+        <div className="hidden sm:block h-4 w-px bg-border" />
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Awarded:</span>
           <span className="font-bold text-success">{kpiStats.awardedCount}</span>
         </div>
-        <div className="h-4 w-px bg-border" />
+        <div className="hidden sm:block h-4 w-px bg-border" />
         <div className="flex items-center gap-1.5">
           <span className="text-muted-foreground">Lost:</span>
           <span className="font-bold text-destructive">{kpiStats.lostCount}</span>
