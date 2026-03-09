@@ -190,16 +190,16 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={stageData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value" onClick={handlePieClick} className="cursor-pointer">
+                  <Pie data={stageData} cx="50%" cy="50%" innerRadius={isMobile ? 40 : 60} outerRadius={isMobile ? 70 : 100} paddingAngle={2} dataKey="value" onClick={handlePieClick} className="cursor-pointer">
                     {stageData.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
-                  <Legend />
+                  {!isMobile && <Legend />}
                 </PieChart>
               </ResponsiveContainer>
             </div>
