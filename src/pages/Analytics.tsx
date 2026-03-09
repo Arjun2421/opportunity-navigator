@@ -18,6 +18,7 @@ const Analytics = () => {
   const { tenders } = useData();
   const { formatCurrency, currency } = useCurrency();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const displayTenders = useMemo(() => {
     if (!activeFilter) return tenders;
