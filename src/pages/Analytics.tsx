@@ -258,14 +258,14 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={leadPerformance}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
+                  <XAxis dataKey="name" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <Tooltip />
-                  <Legend />
+                  {!isMobile && <Legend />}
                   <Bar dataKey="won" name="Won" fill="hsl(142, 76%, 36%)" stackId="a" />
                   <Bar dataKey="lost" name="Lost" fill="hsl(0, 84%, 60%)" stackId="a" />
                 </BarChart>
