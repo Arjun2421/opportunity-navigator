@@ -213,12 +213,12 @@ const Analytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[250px] sm:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={groupData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis type="number" tickFormatter={(v) => fmtVal(v)} />
-                  <YAxis type="category" dataKey="name" width={50} />
+                  <XAxis type="number" tickFormatter={(v) => fmtVal(v)} tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <YAxis type="category" dataKey="name" width={isMobile ? 35 : 50} tick={{ fontSize: isMobile ? 10 : 12 }} />
                   <Tooltip formatter={(v: number) => [fmtVal(v), 'Value']} />
                   <Bar dataKey="value" fill="hsl(217, 91%, 60%)" radius={[0, 4, 4, 0]} onClick={handleBarClick} className="cursor-pointer" />
                 </BarChart>
