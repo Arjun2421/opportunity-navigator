@@ -98,7 +98,7 @@ const Admin = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-4 text-center">
             <Database className="h-5 w-5 mx-auto text-primary mb-2" />

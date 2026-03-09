@@ -99,7 +99,7 @@ const Dashboard = () => {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
           {Array.from({ length: 10 }).map((_, i) => (
             <Skeleton key={i} className="h-24" />
           ))}

@@ -258,6 +258,7 @@ export function OpportunitiesTable({ data, onSelectTender }: OpportunitiesTableP
             </TableBody>
           </Table>
         </div>
+        )}
         <div className="p-3 text-xs text-muted-foreground border-t">
           Showing {Math.min(filteredData.length, 50)} of {filteredData.length} tenders
         </div>

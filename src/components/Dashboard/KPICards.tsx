@@ -175,6 +175,7 @@ export function KPICards({ stats, activeKPI, onKPIClick }: KPICardsProps) {
           </Card>
         );
       })}
+      </div>
     </div>
   );
 }

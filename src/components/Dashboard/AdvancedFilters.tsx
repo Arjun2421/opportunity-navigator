@@ -100,7 +100,7 @@ export function AdvancedFilters({ data, filters, onFiltersChange, onClearFilters
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="relative flex-1 min-w-0 w-full sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search tenders, clients, ref..." value={filters.search} onChange={e => updateFilter("search", e.target.value)} className="pl-10" />
         </div>
