@@ -50,7 +50,6 @@ export function useClientStore() {
         if (normalized.city) merged.city = normalized.city;
         if (normalized.country) merged.country = normalized.country;
         if (normalized.domain) merged.domain = normalized.domain;
-        // Merge contacts avoiding duplicate emails
         const existingEmails = new Set(merged.contacts.map((c) => c.email.toLowerCase()));
         normalized.contacts.forEach((c) => {
           if (!existingEmails.has(c.email.toLowerCase())) {
@@ -70,7 +69,6 @@ export function useClientStore() {
   }, []);
 
   const importFromExcel = useCallback((rows: Record<string, string>[]) => {
-    const newClients: Omit<ClientRecord, 'id'>[] = [];
     const map = new Map<string, Omit<ClientRecord, 'id'>>();
 
     rows.forEach((row) => {
@@ -95,30 +93,33 @@ export function useClientStore() {
 
       if (map.has(name)) {
         const existing = map.get(name)!;
+        if (city.trim()) existing.city = city.trim();
+        if (country.trim()) existing.country = country.trim();
+        if (domain.trim()) existing.domain = domain.trim();
         if (contact.firstName || contact.email) existing.contacts.push(contact);
       } else {
-        const entry: Omit<ClientRecord, 'id'> = {
+        map.set(name, {
           name,
           city: city.trim(),
           country: country.trim(),
           domain: domain.trim(),
           contacts: contact.firstName || contact.email ? [contact] : [],
-        };
-        map.set(name, entry);
+        });
       }
     });
 
-    map.forEach((v) => newClients.push(v));
-    newClients.forEach((c) => addClient(c));
-    return newClients.length;
+    let count = 0;
+    map.forEach((v) => { addClient(v); count++; });
+    return count;
   }, [addClient]);
 
   const generateTemplate = useCallback(() => {
-    // Return CSV template content
     return [
       ['Company Name', 'City', 'Country', 'Domain', 'First Name', 'Last Name', 'Email', 'Phone'],
       ['Acme Corp', 'Dubai', 'UAE', 'Engineering', 'John', 'Doe', 'john@acme.com', '+971501234567'],
-      ['Beta LLC', 'Abu Dhabi', 'UAE', 'Construction', 'Jane', 'Smith', 'jane@beta.com', '+971551234567'],
+      ['Acme Corp', '', '', '', 'Jane', 'Smith', 'jane@acme.com', '+971551234567'],
+      ['Acme Corp', '', '', '', 'Ali', 'Khan', 'ali@acme.com', '+971559876543'],
+      ['Beta LLC', 'Abu Dhabi', 'UAE', 'Construction', 'Sara', 'Ahmed', 'sara@beta.com', '+971501112233'],
     ];
   }, []);
 
