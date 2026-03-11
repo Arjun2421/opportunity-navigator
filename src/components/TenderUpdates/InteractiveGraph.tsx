@@ -106,24 +106,6 @@ export function InteractiveGraph({ tender, updates, onSelectTender }: Interactiv
   const totalHeight = 220 + maxEvents * 50;
   const totalWidth = 800;
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setZoom(z => Math.max(0.2, Math.min(3, z + delta)));
-  }, []);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setDragging(true);
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-  }, [pan]);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!dragging) return;
-    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [dragging, dragStart]);
-
-  const handleMouseUp = useCallback(() => setDragging(false), []);
-
   const fitToScreen = () => {
     setZoom(0.9);
     setPan({ x: 40, y: 20 });
