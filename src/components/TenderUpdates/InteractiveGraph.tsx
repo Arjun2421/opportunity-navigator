@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { TenderData } from '@/services/dataCollection';
 import { TenderUpdate, getNextDueDate } from '@/data/tenderUpdatesData';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Maximize2, ZoomIn, ZoomOut, Search, Home } from 'lucide-react';
 
 interface InteractiveGraphProps {
-  tenders: TenderData[];
+  tender: TenderData | null;
   updates: TenderUpdate[];
   onSelectTender: (id: string) => void;
 }
@@ -19,14 +19,13 @@ interface NodePosition {
   height: number;
   id: string;
   label: string;
-  type: 'group' | 'tender' | 'update';
+  type: 'tender' | 'update' | 'lane';
   color: string;
   borderColor?: string;
-  parentId?: string;
   data?: any;
 }
 
-export function InteractiveGraph({ tenders, updates, onSelectTender }: InteractiveGraphProps) {
+export function InteractiveGraph({ tender, updates, onSelectTender }: InteractiveGraphProps) {
   const [open, setOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -35,60 +34,58 @@ export function InteractiveGraph({ tenders, updates, onSelectTender }: Interacti
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const groups = new Map<string, TenderData[]>();
-  tenders.forEach(t => {
-    const g = t.groupClassification || 'Ungrouped';
-    if (!groups.has(g)) groups.set(g, []);
-    groups.get(g)!.push(t);
-  });
+  if (!tender) {
+    return (
+      <Button variant="outline" size="sm" disabled className="opacity-50">
+        <Maximize2 className="h-4 w-4 mr-1" />
+        Fullscreen Tree
+      </Button>
+    );
+  }
 
-  // Build nodes
+  const tenderUpdates = updates.filter(u => u.opportunityId === tender.id);
+  const subUpdates = tenderUpdates.filter(u => u.type === 'subcontractor').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const clientUpdates = tenderUpdates.filter(u => u.type === 'client').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
   const nodes: NodePosition[] = [];
   const edges: { from: string; to: string }[] = [];
-  let yOffset = 40;
 
-  groups.forEach((groupTenders, groupName) => {
-    const gId = `group-${groupName}`;
-    nodes.push({ id: gId, x: 40, y: yOffset, width: 180, height: 32, label: groupName, type: 'group', color: 'hsl(var(--primary))' });
+  // Root tender node
+  const rootId = `tender-${tender.id}`;
+  nodes.push({ id: rootId, x: 300, y: 40, width: 260, height: 40, label: `${tender.tenderName} (${tender.refNo})`, type: 'tender', color: 'hsl(var(--primary))' });
 
-    groupTenders.forEach((t, ti) => {
-      const tId = `tender-${t.id}`;
-      const tY = yOffset + (ti + 1) * 60;
-      nodes.push({ id: tId, x: 260, y: tY, width: 200, height: 32, label: `${t.tenderName} (${t.refNo})`, type: 'tender', color: 'hsl(var(--card))', data: t });
-      edges.push({ from: gId, to: tId });
+  // Subcontractor lane
+  const subLaneId = 'lane-sub';
+  nodes.push({ id: subLaneId, x: 100, y: 120, width: 180, height: 34, label: `Subcontractor (${subUpdates.length})`, type: 'lane', color: 'hsl(var(--info))' });
+  edges.push({ from: rootId, to: subLaneId });
 
-      const tUpdates = updates.filter(u => u.opportunityId === t.id);
-      tUpdates.forEach((u, ui) => {
-        const uId = `update-${u.id}`;
-        const uY = tY + (ui + 1) * 40;
-        const isSubcontractor = u.type === 'subcontractor';
-        const dueInfo = u.dueDate ? getNextDueDate(t.id) : null;
-        let borderColor: string | undefined;
-        if (dueInfo?.status === 'overdue') borderColor = 'hsl(var(--destructive))';
-        else if (dueInfo?.status === 'urgent') borderColor = 'hsl(var(--warning))';
-
-        nodes.push({
-          id: uId,
-          x: 500,
-          y: uY,
-          width: 220,
-          height: 28,
-          label: `${isSubcontractor ? 'SC' : 'CL'}: ${u.subType} — ${u.actor}`,
-          type: 'update',
-          color: isSubcontractor ? 'hsl(var(--info))' : 'hsl(var(--success))',
-          borderColor,
-          parentId: tId,
-          data: u,
-        });
-        edges.push({ from: tId, to: uId });
-      });
-
-      yOffset = Math.max(yOffset, tY + tUpdates.length * 40 + 20);
-    });
-    yOffset += 60;
+  subUpdates.forEach((u, i) => {
+    const uId = `sub-${u.id}`;
+    const dueInfo = u.dueDate ? getNextDueDate(tender.id) : null;
+    let borderColor: string | undefined;
+    if (dueInfo?.status === 'overdue') borderColor = 'hsl(var(--destructive))';
+    else if (dueInfo?.status === 'urgent') borderColor = 'hsl(38, 92%, 50%)';
+    nodes.push({ id: uId, x: 60, y: 180 + i * 50, width: 260, height: 32, label: `${u.subType} — ${u.actor} (${new Date(u.date).toLocaleDateString()})`, type: 'update', color: 'hsl(var(--info))', borderColor, data: u });
+    edges.push({ from: subLaneId, to: uId });
   });
 
-  const totalHeight = yOffset + 60;
+  // Client lane
+  const clientLaneId = 'lane-client';
+  nodes.push({ id: clientLaneId, x: 500, y: 120, width: 180, height: 34, label: `Client (${clientUpdates.length})`, type: 'lane', color: 'hsl(var(--success))' });
+  edges.push({ from: rootId, to: clientLaneId });
+
+  clientUpdates.forEach((u, i) => {
+    const uId = `client-${u.id}`;
+    const dueInfo = u.dueDate ? getNextDueDate(tender.id) : null;
+    let borderColor: string | undefined;
+    if (dueInfo?.status === 'overdue') borderColor = 'hsl(var(--destructive))';
+    else if (dueInfo?.status === 'urgent') borderColor = 'hsl(38, 92%, 50%)';
+    nodes.push({ id: uId, x: 460, y: 180 + i * 50, width: 260, height: 32, label: `${u.subType} — ${u.actor} (${new Date(u.date).toLocaleDateString()})`, type: 'update', color: 'hsl(var(--success))', borderColor, data: u });
+    edges.push({ from: clientLaneId, to: uId });
+  });
+
+  const maxEvents = Math.max(subUpdates.length, clientUpdates.length, 1);
+  const totalHeight = 220 + maxEvents * 50;
   const totalWidth = 800;
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -110,8 +107,8 @@ export function InteractiveGraph({ tenders, updates, onSelectTender }: Interacti
   const handleMouseUp = useCallback(() => setDragging(false), []);
 
   const fitToScreen = () => {
-    setZoom(0.8);
-    setPan({ x: 20, y: 20 });
+    setZoom(0.9);
+    setPan({ x: 40, y: 20 });
   };
 
   const highlightMatch = (label: string) => {
@@ -132,6 +129,9 @@ export function InteractiveGraph({ tenders, updates, onSelectTender }: Interacti
         <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setZoom(z => Math.max(0.2, z - 0.2))}><ZoomOut className="h-3 w-3" /></Button>
         <Button size="icon" variant="outline" className="h-8 w-8" onClick={fitToScreen}><Home className="h-3 w-3" /></Button>
       </div>
+      <div className="absolute top-3 right-3 z-10 text-xs text-muted-foreground font-medium bg-card/80 backdrop-blur px-3 py-1.5 rounded-md border">
+        {tender.tenderName}
+      </div>
       <svg
         ref={svgRef}
         width="100%"
@@ -143,53 +143,55 @@ export function InteractiveGraph({ tenders, updates, onSelectTender }: Interacti
         onMouseLeave={handleMouseUp}
       >
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Edges */}
           {edges.map((e, i) => {
             const from = nodeMap.get(e.from);
             const to = nodeMap.get(e.to);
             if (!from || !to) return null;
+            const x1 = from.x + from.width / 2;
+            const y1 = from.y + from.height;
+            const x2 = to.x + to.width / 2;
+            const y2 = to.y;
+            const midY = (y1 + y2) / 2;
             return (
-              <line
+              <path
                 key={i}
-                x1={from.x + from.width}
-                y1={from.y + from.height / 2}
-                x2={to.x}
-                y2={to.y + to.height / 2}
+                d={`M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`}
+                fill="none"
                 stroke="hsl(var(--border))"
                 strokeWidth={1.5}
+                strokeDasharray={from.type === 'lane' ? '4 2' : undefined}
               />
             );
           })}
-          {/* Nodes */}
           {nodes.map(node => {
             const isHighlighted = highlightMatch(node.label);
+            const isRoot = node.type === 'tender';
+            const isLane = node.type === 'lane';
             return (
-              <g
-                key={node.id}
-                onClick={() => {
-                  if (node.type === 'tender' && node.data) onSelectTender(node.data.id);
-                }}
-                style={{ cursor: node.type === 'tender' ? 'pointer' : 'default' }}
-              >
+              <g key={node.id} style={{ cursor: 'default' }}>
+                {isRoot && (
+                  <rect x={node.x - 3} y={node.y - 3} width={node.width + 6} height={node.height + 6} rx={12} fill="none" stroke={node.color} strokeWidth={2} opacity={0.3} />
+                )}
                 <rect
                   x={node.x}
                   y={node.y}
                   width={node.width}
                   height={node.height}
-                  rx={6}
-                  fill={node.type === 'group' ? node.color : 'hsl(var(--card))'}
+                  rx={isRoot ? 10 : isLane ? 8 : 6}
+                  fill={isRoot || isLane ? node.color : 'hsl(var(--card))'}
                   stroke={isHighlighted ? 'hsl(var(--warning))' : (node.borderColor || node.color)}
-                  strokeWidth={isHighlighted ? 3 : node.type === 'update' ? 2 : 1.5}
+                  strokeWidth={isHighlighted ? 3 : 1.5}
                   opacity={search && !isHighlighted ? 0.3 : 1}
                 />
                 <text
-                  x={node.x + 8}
+                  x={node.x + node.width / 2}
                   y={node.y + node.height / 2 + 4}
-                  fontSize={node.type === 'group' ? 12 : 10}
-                  fill={node.type === 'group' ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))'}
-                  fontWeight={node.type === 'group' ? 600 : 400}
+                  textAnchor="middle"
+                  fontSize={isRoot ? 12 : isLane ? 11 : 10}
+                  fill={isRoot || isLane ? 'hsl(var(--primary-foreground))' : 'hsl(var(--foreground))'}
+                  fontWeight={isRoot || isLane ? 600 : 400}
                 >
-                  {node.label.length > 30 ? node.label.substring(0, 28) + '...' : node.label}
+                  {node.label.length > 35 ? node.label.substring(0, 33) + '...' : node.label}
                 </text>
               </g>
             );
