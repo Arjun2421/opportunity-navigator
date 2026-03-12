@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Search, Building2, Globe, Shield, Users, Mail, ExternalLink, Award, Cpu, Briefcase, FlaskConical, Handshake, X, ChevronRight, FileText, Phone, Layers, Download, LayoutGrid, List, ArrowUpDown, GitCompare } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Search, Building2, Globe, Shield, Users, Mail, ExternalLink, Award, Cpu, Briefcase, FlaskConical, Handshake, X, ChevronRight, FileText, Phone, Layers, Download, LayoutGrid, List, ArrowUpDown, GitCompare, Upload, Plus, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getVendors, searchVendors, getVendorMatchCount, VendorData } from '@/data/vendorData';
 import { VendorCompareDialog } from '@/components/Vendors/VendorCompareDialog';
+import { ImportVendorsDialog } from '@/components/Vendors/ImportVendorsDialog';
+import { AddVendorDialog } from '@/components/Vendors/AddVendorDialog';
+import { EditVendorDialog } from '@/components/Vendors/EditVendorDialog';
+import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
 
 const AGREEMENT_COLORS: Record<string, string> = {
@@ -69,8 +73,13 @@ export default function Vendors() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editVendor, setEditVendor] = useState<VendorData | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { isMaster } = useAuth();
 
-  const allVendors = useMemo(() => getVendors(), []);
+  const allVendors = useMemo(() => getVendors(), [refreshKey]);
 
   const filteredVendors = useMemo(() => {
     let result = searchVendors(allVendors, searchQuery);
@@ -141,9 +150,17 @@ export default function Vendors() {
           </h1>
           <p className="text-muted-foreground text-sm">Search anything — tech stack, certifications, industries, partners, contacts, projects</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="h-4 w-4 mr-2" /> Export XLSX
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1.5">
+            <Upload className="h-4 w-4" /> Import
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowAdd(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Add
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
+            <Download className="h-4 w-4" /> Export
+          </Button>
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -305,8 +322,11 @@ export default function Vendors() {
         </Card>
       )}
 
-      <VendorDetailDialog vendor={selectedVendor} onClose={() => setSelectedVendor(null)} searchQuery={searchQuery} />
+      <VendorDetailDialog vendor={selectedVendor} onClose={() => setSelectedVendor(null)} searchQuery={searchQuery} isMaster={isMaster} onEdit={(v) => { setSelectedVendor(null); setEditVendor(v); }} />
       <VendorCompareDialog vendors={compareVendors} open={showCompare} onClose={() => setShowCompare(false)} />
+      <ImportVendorsDialog open={showImport} onClose={() => setShowImport(false)} onImported={() => setRefreshKey(k => k + 1)} />
+      <AddVendorDialog open={showAdd} onClose={() => setShowAdd(false)} onAdded={() => setRefreshKey(k => k + 1)} />
+      <EditVendorDialog vendor={editVendor} open={!!editVendor} onClose={() => setEditVendor(null)} onUpdated={() => setRefreshKey(k => k + 1)} />
     </div>
   );
 }
@@ -452,10 +472,12 @@ function TagGrid({ items, color, query }: { items: string[]; color: string; quer
   );
 }
 
-function VendorDetailDialog({ vendor, onClose, searchQuery }: {
+function VendorDetailDialog({ vendor, onClose, searchQuery, isMaster, onEdit }: {
   vendor: VendorData | null;
   onClose: () => void;
   searchQuery: string;
+  isMaster?: boolean;
+  onEdit?: (v: VendorData) => void;
 }) {
   if (!vendor) return null;
 
@@ -467,6 +489,11 @@ function VendorDetailDialog({ vendor, onClose, searchQuery }: {
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
               {vendor.companyName}
+              {isMaster && onEdit && (
+                <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={() => onEdit(vendor)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
             </DialogTitle>
           </DialogHeader>
           <div className="flex items-center flex-wrap gap-2 mt-2">
