@@ -73,8 +73,13 @@ export default function Vendors() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editVendor, setEditVendor] = useState<VendorData | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { isMaster } = useAuth();
 
-  const allVendors = useMemo(() => getVendors(), []);
+  const allVendors = useMemo(() => getVendors(), [refreshKey]);
 
   const filteredVendors = useMemo(() => {
     let result = searchVendors(allVendors, searchQuery);
