@@ -150,9 +150,17 @@ export default function Vendors() {
           </h1>
           <p className="text-muted-foreground text-sm">Search anything — tech stack, certifications, industries, partners, contacts, projects</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="h-4 w-4 mr-2" /> Export XLSX
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1.5">
+            <Upload className="h-4 w-4" /> Import
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowAdd(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Add
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5">
+            <Download className="h-4 w-4" /> Export
+          </Button>
+        </div>
       </div>
 
       {/* Stats Row */}
