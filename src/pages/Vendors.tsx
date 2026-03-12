@@ -489,6 +489,11 @@ function VendorDetailDialog({ vendor, onClose, searchQuery, isMaster, onEdit }: 
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
               {vendor.companyName}
+              {isMaster && onEdit && (
+                <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={() => onEdit(vendor)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
             </DialogTitle>
           </DialogHeader>
           <div className="flex items-center flex-wrap gap-2 mt-2">
