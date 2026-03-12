@@ -322,8 +322,11 @@ export default function Vendors() {
         </Card>
       )}
 
-      <VendorDetailDialog vendor={selectedVendor} onClose={() => setSelectedVendor(null)} searchQuery={searchQuery} />
+      <VendorDetailDialog vendor={selectedVendor} onClose={() => setSelectedVendor(null)} searchQuery={searchQuery} isMaster={isMaster} onEdit={(v) => { setSelectedVendor(null); setEditVendor(v); }} />
       <VendorCompareDialog vendors={compareVendors} open={showCompare} onClose={() => setShowCompare(false)} />
+      <ImportVendorsDialog open={showImport} onClose={() => setShowImport(false)} onImported={() => setRefreshKey(k => k + 1)} />
+      <AddVendorDialog open={showAdd} onClose={() => setShowAdd(false)} onAdded={() => setRefreshKey(k => k + 1)} />
+      <EditVendorDialog vendor={editVendor} open={!!editVendor} onClose={() => setEditVendor(null)} onUpdated={() => setRefreshKey(k => k + 1)} />
     </div>
   );
 }
