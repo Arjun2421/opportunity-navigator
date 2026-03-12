@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Search, Building2, Globe, Shield, Users, Mail, ExternalLink, Award, Cpu, Briefcase, FlaskConical, Handshake, X, ChevronRight, FileText, Phone, Layers, Download, LayoutGrid, List, ArrowUpDown, GitCompare } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Search, Building2, Globe, Shield, Users, Mail, ExternalLink, Award, Cpu, Briefcase, FlaskConical, Handshake, X, ChevronRight, FileText, Phone, Layers, Download, LayoutGrid, List, ArrowUpDown, GitCompare, Upload, Plus, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getVendors, searchVendors, getVendorMatchCount, VendorData } from '@/data/vendorData';
 import { VendorCompareDialog } from '@/components/Vendors/VendorCompareDialog';
+import { ImportVendorsDialog } from '@/components/Vendors/ImportVendorsDialog';
+import { AddVendorDialog } from '@/components/Vendors/AddVendorDialog';
+import { EditVendorDialog } from '@/components/Vendors/EditVendorDialog';
+import { useAuth } from '@/contexts/AuthContext';
 import * as XLSX from 'xlsx';
 
 const AGREEMENT_COLORS: Record<string, string> = {
