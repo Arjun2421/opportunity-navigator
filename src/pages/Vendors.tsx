@@ -472,10 +472,12 @@ function TagGrid({ items, color, query }: { items: string[]; color: string; quer
   );
 }
 
-function VendorDetailDialog({ vendor, onClose, searchQuery }: {
+function VendorDetailDialog({ vendor, onClose, searchQuery, isMaster, onEdit }: {
   vendor: VendorData | null;
   onClose: () => void;
   searchQuery: string;
+  isMaster?: boolean;
+  onEdit?: (v: VendorData) => void;
 }) {
   if (!vendor) return null;
 
