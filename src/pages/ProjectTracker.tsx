@@ -87,10 +87,7 @@ export default function ProjectTracker() {
     );
   }
 
-  const refresh = () => {
-    setAllUpdates(getProjectUpdates());
-    setRefreshKey(k => k + 1);
-  };
+  // refresh, filtered, stats, handleAddSubmit moved before the access check above
 
   const filtered = useMemo(() => {
     let list = tenders;
