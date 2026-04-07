@@ -87,37 +87,6 @@ export default function ProjectTracker() {
     );
   }
 
-  // refresh, filtered, stats, handleAddSubmit moved before the access check above
-
-  const filtered = useMemo(() => {
-    let list = tenders;
-    if (groupFilter !== 'all') list = list.filter(t => t.groupClassification === groupFilter);
-    if (search) {
-      const s = search.toLowerCase();
-      list = list.filter(t =>
-        t.client.toLowerCase().includes(s) || t.refNo.toLowerCase().includes(s) ||
-        t.tenderName.toLowerCase().includes(s) || t.lead.toLowerCase().includes(s)
-      );
-    }
-    return list;
-  }, [tenders, groupFilter, search, refreshKey]);
-
-  const stats = useMemo(() => {
-    const active = filtered.filter(t => ['WORKING', 'ONGOING', 'SUBMITTED'].includes(t.avenirStatus.toUpperCase()));
-    const awarded = filtered.filter(t => t.avenirStatus.toUpperCase() === 'AWARDED');
-    return {
-      total: filtered.length,
-      active: active.length,
-      awarded: awarded.length,
-      totalValue: filtered.reduce((s, t) => s + (t.value || 0), 0),
-    };
-  }, [filtered]);
-
-  const handleAddSubmit = useCallback((data: Omit<ProjectUpdate, 'id' | 'createdAt'>) => {
-    addProjectUpdate(data);
-    refresh();
-    setAddOpen(false);
-  }, []);
 
   const exportCSV = () => {
     const header = 'Ref No,Received Date,Tender Name,Client,Lead,Value,Status,Group,Updates Count,Last Update,Last Update Type\n';
