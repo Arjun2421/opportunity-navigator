@@ -18,6 +18,7 @@ import Analytics from "./pages/Analytics";
 import Vendors from "./pages/Vendors";
 import Admin from "./pages/Admin";
 import TenderUpdates from "./pages/TenderUpdates";
+import ProjectTracker from "./pages/ProjectTracker";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
