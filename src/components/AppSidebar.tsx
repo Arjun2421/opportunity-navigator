@@ -52,6 +52,7 @@ const mainNavItems = [
   { title: "Vendors", url: "/vendors", icon: Users },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Tender Updates", url: "/tender-updates", icon: GitBranch },
+  { title: "Project Tracker", url: "/project-tracker", icon: FolderKanban },
 ];
 
 const statusNavItems = [
