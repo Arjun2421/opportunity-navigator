@@ -18,6 +18,7 @@ import Analytics from "./pages/Analytics";
 import Vendors from "./pages/Vendors";
 import Admin from "./pages/Admin";
 import TenderUpdates from "./pages/TenderUpdates";
+import ProjectTracker from "./pages/ProjectTracker";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,7 @@ const App = () => (
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/vendors" element={<Vendors />} />
                             <Route path="/tender-updates" element={<TenderUpdates />} />
+                            <Route path="/project-tracker" element={<ProjectTracker />} />
                             <Route path="/admin" element={<Admin />} />
                             
                             {/* Status-based routes */}
