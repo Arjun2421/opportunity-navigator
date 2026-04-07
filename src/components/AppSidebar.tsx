@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   CloudUpload,
   GitBranch,
+  FolderKanban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useData } from "@/contexts/DataContext";
